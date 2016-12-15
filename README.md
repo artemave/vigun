@@ -15,7 +15,7 @@ Comes with mappings that you can't overwrite:
 
 `<leader>T` - run test under cursor
 
-`<leader>D` - run test under cursor in debug mode
+`<leader>D` - start debug session for test under cursor. This copies the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
 
 ## Gotcha
 
