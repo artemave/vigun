@@ -17,12 +17,12 @@ Comes with mappings that you can't overwrite:
 
 `<leader>D` - run test under cursor in debug mode
 
-### Gotcha
+## Gotcha
 
 Assumes `mocha` is in the `$PATH`.
 
 I always add the entire `node_modules/.bin` into the `$PATH` using [direnv](https://direnv.net/). Give it a try. It is useful well beyond this plugin.
 
-### Bonus
+## Bonus
 
 If you happen to run tests in karma, you may appreciate `<leader>o` binding. It toggles `.only` for a test under cursor.
