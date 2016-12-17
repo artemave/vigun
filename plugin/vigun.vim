@@ -1,3 +1,8 @@
+if exists("g:vigun_loaded")
+  break
+endif
+let g:vigun_loaded = 1
+
 function! s:SetTestCase()
   let in_test_file = match(expand("%"), 'Spec.js$') != -1
 
@@ -23,7 +28,7 @@ function! RunNearestMochaTest()
     return
   end
 
-  let command = "mocha --fgrep '".t:nearest_test_title."' " . t:grb_test_file
+  let command = s:MochaCommand('normal') . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
 
   call s:SendToTmux(command)
 endfunction
@@ -35,7 +40,7 @@ function! RunNearestMochaTestDebug()
     return
   end
 
-  let command = "mocha --inspect --debug-brk --no-timeouts --fgrep '".t:nearest_test_title."' " . t:grb_test_file
+  let command = s:MochaCommand('debug') . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
 
   call s:SendToTmux(command)
 
@@ -73,15 +78,15 @@ function! s:RunTests(filename)
   :wa
   if match(a:filename, '\.feature') != -1
     if filereadable(expand("./features/support/env.rb"))
-      let l:command = g:test_run_command_prefix . " cucumber " . a:filename
+      let l:command = g:vigun_ruby_test_command_prefix . " cucumber " . a:filename
     else
       let l:command = "cucumberjs " . a:filename
     endif
   else
     if &filetype == 'javascript'
-      let l:command = "mocha " . a:filename
+      let l:command = s:MochaCommand('normal') . ' ' . a:filename
     else
-      let l:command = g:test_run_command_prefix . " rspec -c " . a:filename
+      let l:command = g:vigun_ruby_test_command_prefix . " rspec -c " . a:filename
     endif
   end
   call s:SendToTmux(command)
@@ -105,6 +110,14 @@ function! MochaOnly()
   endif
 endfunction
 
+function! s:MochaCommand(mode)
+  for cmd in g:vigun_mocha_commands
+    if match(expand("%"), '\v' . cmd.pattern) != -1
+      return cmd[a:mode]
+    endif
+  endfor
+endfunction
+
 au FileType javascript nmap <buffer> <nowait> <Leader>o :call MochaOnly()<cr>
 
 au FileType {ruby,javascript,cucumber} nmap <buffer> <nowait> <leader>t :call RunTestFile()<cr>
@@ -112,4 +125,17 @@ au FileType {ruby,cucumber} nmap <buffer> <nowait> <leader>T :call RunNearestTes
 au FileType javascript nmap <buffer> <nowait> <leader>T :call RunNearestMochaTest()<cr>
 au FileType javascript nmap <buffer> <nowait> <leader>D :call RunNearestMochaTestDebug()<cr>
 
-let g:test_run_command_prefix = ''
+" for `bundle exec` in front of rspec/cucumber
+if !exists('g:vigun_ruby_test_command_prefix')
+  let g:vigun_ruby_test_command_prefix = ''
+endif
+
+if !exists('g:vigun_mocha_commands')
+  let g:vigun_mocha_commands = [
+        \ {
+        \   'pattern': 'Spec.js$',
+        \   'normal': 'mocha',
+        \   'debug': 'mocha --inspect --debug-brk --no-timeouts',
+        \ },
+        \]
+endif
