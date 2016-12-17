@@ -35,7 +35,7 @@ function! RunNearestMochaTestDebug()
     return
   end
 
-  let command = "mocha --inspect --debug-brk --fgrep '".t:nearest_test_title."' " . t:grb_test_file
+  let command = "mocha --inspect --debug-brk --no-timeouts --fgrep '".t:nearest_test_title."' " . t:grb_test_file
 
   call s:SendToTmux(command)
 
@@ -87,13 +87,6 @@ function! s:RunTests(filename)
   call s:SendToTmux(command)
 endfunction
 
-let g:test_run_command_prefix = ''
-
-au FileType {ruby,javascript,cucumber} nmap <buffer> <nowait> <leader>t :call RunTestFile()<cr>
-au FileType {ruby,cucumber} nmap <buffer> <nowait> <leader>T :call RunNearestTest()<cr>
-au FileType javascript nmap <buffer> <nowait> <leader>T :call RunNearestMochaTest()<cr>
-au FileType javascript nmap <buffer> <nowait> <leader>D :call RunNearestMochaTestDebug()<cr>
-
 function! MochaOnly()
   let line_number = search('\<\(it\|context\|describe\|forExample\|scenario\|feature\)\(.only\)\=(', 'bn')
   let line = getline(line_number)
@@ -111,4 +104,12 @@ function! MochaOnly()
     normal! f(
   endif
 endfunction
+
 au FileType javascript nmap <buffer> <nowait> <Leader>o :call MochaOnly()<cr>
+
+au FileType {ruby,javascript,cucumber} nmap <buffer> <nowait> <leader>t :call RunTestFile()<cr>
+au FileType {ruby,cucumber} nmap <buffer> <nowait> <leader>T :call RunNearestTest()<cr>
+au FileType javascript nmap <buffer> <nowait> <leader>T :call RunNearestMochaTest()<cr>
+au FileType javascript nmap <buffer> <nowait> <leader>D :call RunNearestMochaTestDebug()<cr>
+
+let g:test_run_command_prefix = ''
