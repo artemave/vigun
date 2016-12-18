@@ -5,6 +5,8 @@ Unclutter your test diet.
 
 Runs mocha tests from vim in a separate tmux window.
 
+[![demo](https://img.youtube.com/vi/zFPePu4K_U0/0.jpg)](https://www.youtube.com/watch?v=zFPePu4K_U0)
+
 Comes in three flavors:
 
 `<leader>t` - run all tests in a current file
