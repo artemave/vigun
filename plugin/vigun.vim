@@ -1,5 +1,5 @@
 if exists("g:vigun_loaded")
-  break
+  finish
 endif
 let g:vigun_loaded = 1
 
