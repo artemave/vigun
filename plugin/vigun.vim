@@ -21,35 +21,48 @@ function! s:SendToTmux(command)
   call system('tmux paste-buffer -d -t test')
 endfunction
 
-function! RunNearestMochaTest()
+function! RunNearestMochaTest(mode)
   call s:SetTestCase()
 
   if !exists("t:grb_test_file")
     return
   end
 
-  let command = s:MochaCommand('normal') . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
+  let command = s:MochaCommand(a:mode) . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
 
   call s:SendToTmux(command)
+
+  if a:mode == 'debug'
+    call s:CopyMochaDebugUrlToClipboard()
+  endif
 endfunction
 
-function! RunNearestMochaTestDebug()
-  call s:SetTestCase()
+" This will gracefully do nothing for any command other than `mocha --inspect
+" --debug-brk`
+function! s:CopyMochaDebugUrlToClipboard()
+  let debug_url = ''
+  let retry_count = 0
 
-  if !exists("t:grb_test_file")
-    return
-  end
+  while debug_url == ''
+    if retry_count > 10
+      return
+    endif
 
-  let command = s:MochaCommand('debug') . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
+    call system('tmux capture-pane -J -b mocha-debug')
+    call system('tmux save-buffer -b mocha-debug /tmp/vim-mocha-debug')
 
-  call s:SendToTmux(command)
+    let debug_url=system("grep chrome-devtools /tmp/vim-mocha-debug | tail -n 1 | sed -e 's/ *//'")
 
-  call system('tmux capture-pane -J -b mocha-debug')
-  call system('tmux save-buffer -b mocha-debug /tmp/vim-mocha-debug')
+    if debug_url == ''
+      sleep 20m
+      let retry_count += 1
+    endif
+  endwhile
 
-  let debug_url=system("grep chrome-devtools /tmp/vim-mocha-debug | tail -n 1 | sed -e 's/ *//'")
-  let @*=debug_url " copy to osx clipboard
-  let @+=debug_url " copy to linux clipboard
+  if debug_url != ''
+    let @*=debug_url " copy to osx clipboard
+    let @+=debug_url " copy to linux clipboard
+  endif
 endfunction
 
 function! RunTestFile(...)
@@ -127,8 +140,8 @@ au FileType javascript nmap <buffer> <nowait> <Leader>o :call MochaOnly()<cr>
 
 au FileType {ruby,javascript,cucumber} nmap <buffer> <nowait> <leader>t :call RunTestFile()<cr>
 au FileType {ruby,cucumber} nmap <buffer> <nowait> <leader>T :call RunNearestTest()<cr>
-au FileType javascript nmap <buffer> <nowait> <leader>T :call RunNearestMochaTest()<cr>
-au FileType javascript nmap <buffer> <nowait> <leader>D :call RunNearestMochaTestDebug()<cr>
+au FileType javascript nmap <buffer> <nowait> <leader>T :call RunNearestMochaTest('normal')<cr>
+au FileType javascript nmap <buffer> <nowait> <leader>D :call RunNearestMochaTest('debug')<cr>
 
 " for `bundle exec` in front of rspec/cucumber
 if !exists('g:vigun_ruby_test_command_prefix')
