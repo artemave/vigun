@@ -93,7 +93,12 @@ function! s:RunTests(filename)
 endfunction
 
 function! MochaOnly()
-  let line_number = search('\<\(it\|context\|describe\|forExample\|scenario\|feature\)\(.only\)\=(', 'bn')
+  let line_number = search('\<\(it\|context\|describe\|forExample\|scenario\|feature\).only(', 'bn')
+
+  if line_number == 0
+    let line_number = search('\<\(it\|context\|describe\|forExample\|scenario\|feature\)(', 'bn')
+  endif
+
   let line = getline(line_number)
 
   if match(line, '\<\i\+\.only\>') >= 0
