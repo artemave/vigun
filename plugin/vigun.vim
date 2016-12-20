@@ -11,7 +11,7 @@ function! s:SetTestCase()
     :wa
 
     let nearest_test_line_number = search('\<\(it\|context\|describe\)(', 'bn')
-    let t:nearest_test_title = matchstr(getline(nearest_test_line_number), "['" . '"]\zs[^"' . "']" . '*\ze')
+    let t:nearest_test_title = matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze')
   end
 endfunction
 
