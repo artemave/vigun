@@ -36,6 +36,12 @@ let g:vigun_mocha_commands = [
       \]
 ```
 
+By default lines that start with `it(`, `describe(`, `context(` are considered test boundaries. This can be extended:
+
+```
+let g:vigun_extra_keywords = ['feature', 'scenario', 'example']
+```
+
 Things to note: `pattern` is a regular expression, not glob; match order matters, so it should go from more specific to less specific.
 
 ## Gotcha

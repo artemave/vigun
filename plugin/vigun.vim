@@ -10,7 +10,8 @@ function! s:SetTestCase()
     let t:grb_test_file=@%
     :wa
 
-    let nearest_test_line_number = search('\<\(it\|context\|describe\)(', 'bn')
+    let keywords = join(s:Keywords(), '\|')
+    let nearest_test_line_number = search('\<\('.keywords.'\)(', 'bn')
     let t:nearest_test_title = matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze')
   end
 endfunction
@@ -105,11 +106,17 @@ function! s:RunTests(filename)
   call s:SendToTmux(command)
 endfunction
 
+function! s:Keywords()
+  return ['it', 'context', 'describe'] + g:vigun_extra_keywords
+endfunction
+
 function! MochaOnly()
-  let line_number = search('\<\(it\|context\|describe\|forExample\|scenario\|feature\).only(', 'bn')
+  let keywords = join(s:Keywords(), '\|')
+
+  let line_number = search('\<\('.keywords.'\).only(', 'bn')
 
   if line_number == 0
-    let line_number = search('\<\(it\|context\|describe\|forExample\|scenario\|feature\)(', 'bn')
+    let line_number = search('\<\('.keywords.'\)(', 'bn')
   endif
 
   let line = getline(line_number)
@@ -146,6 +153,10 @@ au FileType javascript nmap <buffer> <nowait> <leader>D :call RunNearestMochaTes
 " for `bundle exec` in front of rspec/cucumber
 if !exists('g:vigun_ruby_test_command_prefix')
   let g:vigun_ruby_test_command_prefix = ''
+endif
+
+if !exists('g:vigun_extra_keywords')
+  let g:vigun_extra_keywords = []
 endif
 
 if !exists('g:vigun_mocha_commands')
