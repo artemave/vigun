@@ -143,12 +143,12 @@ function! s:MochaCommand(mode)
   endfor
 endfunction
 
-au FileType javascript nmap <buffer> <nowait> <Leader>o :call MochaOnly()<cr>
+au FileType javascript nmap <buffer> <silent> <nowait> <Leader>o :call MochaOnly()\|redraw!<cr>
 
-au FileType {ruby,javascript,cucumber} nmap <buffer> <nowait> <leader>t :call RunTestFile()<cr>
-au FileType {ruby,cucumber} nmap <buffer> <nowait> <leader>T :call RunNearestTest()<cr>
-au FileType javascript nmap <buffer> <nowait> <leader>T :call RunNearestMochaTest('normal')<cr>
-au FileType javascript nmap <buffer> <nowait> <leader>D :call RunNearestMochaTest('debug')<cr>
+au FileType {ruby,javascript,cucumber} nmap <buffer> <silent> <nowait> <leader>t :call RunTestFile()\|redraw!<cr>
+au FileType {ruby,cucumber} nmap <buffer> <silent> <nowait> <leader>T :call RunNearestTest()\|redraw!<cr>
+au FileType javascript nmap <buffer> <silent> <nowait> <leader>T :call RunNearestMochaTest('normal')\|redraw!<cr>
+au FileType javascript nmap <buffer> <silent> <nowait> <leader>D :call RunNearestMochaTest('debug')\|redraw!<cr>
 
 " for `bundle exec` in front of rspec/cucumber
 if !exists('g:vigun_ruby_test_command_prefix')
