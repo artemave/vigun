@@ -12,7 +12,7 @@ function! s:SetTestCase()
 
     let keywords = join(s:Keywords(), '\|')
     let nearest_test_line_number = search('\<\('.keywords.'\)(', 'bn')
-    let t:nearest_test_title = matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze')
+    let t:nearest_test_title = escape(matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze'), "'()?")
   end
 endfunction
 
