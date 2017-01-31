@@ -120,9 +120,11 @@ function! s:IsOnlySet()
 endfunction
 
 function! MochaOnly()
-  if !s:IsOnlySet()
-    let keywords = join(s:Keywords(), '\|')
-    let line_number = search('\<\('.keywords.'\)(', 'bn')
+  let keywords = join(s:Keywords(), '\|')
+  let line_number = search('\<\('.keywords.'\)\(.only\)\?(', 'bn')
+
+  if !line_number
+    return
   endif
 
   let line = getline(line_number)
