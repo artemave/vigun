@@ -29,7 +29,11 @@ function! RunNearestMochaTest(mode)
     return
   end
 
-  let command = s:MochaCommand(a:mode) . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
+  if s:IsOnlySet()
+    let command = s:MochaCommand(a:mode) . " " . t:grb_test_file
+  else
+    let command = s:MochaCommand(a:mode) . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
+  endif
 
   call s:SendToTmux(command)
 
@@ -110,12 +114,14 @@ function! s:Keywords()
   return ['it', 'context', 'describe'] + g:vigun_extra_keywords
 endfunction
 
-function! MochaOnly()
+function! s:IsOnlySet()
   let keywords = join(s:Keywords(), '\|')
+  return search('\<\('.keywords.'\).only(', 'bn')
+endfunction
 
-  let line_number = search('\<\('.keywords.'\).only(', 'bn')
-
-  if line_number == 0
+function! MochaOnly()
+  if !s:IsOnlySet()
+    let keywords = join(s:Keywords(), '\|')
     let line_number = search('\<\('.keywords.'\)(', 'bn')
   endif
 
