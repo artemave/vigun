@@ -10,8 +10,7 @@ function! s:SetTestCase()
     let t:grb_test_file=@%
     :wa
 
-    let keywords = join(s:Keywords(), '\|')
-    let nearest_test_line_number = search('\<\('.keywords.'\)(', 'bn')
+    let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
     let t:nearest_test_title = escape(matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze'), "'()?")
   end
 endfunction
@@ -22,7 +21,7 @@ function! s:SendToTmux(command)
   call system('tmux paste-buffer -d -t test')
 endfunction
 
-function! RunNearestMochaTest(mode)
+function! s:RunNearestMochaTest(mode)
   call s:SetTestCase()
 
   if !exists("t:grb_test_file")
@@ -70,7 +69,7 @@ function! s:CopyMochaDebugUrlToClipboard()
   endif
 endfunction
 
-function! RunTestFile(...)
+function! s:RunTestFile(...)
   if a:0
     let command_suffix = a:1
   else
@@ -87,9 +86,9 @@ function! RunTestFile(...)
   call s:RunTests(t:grb_test_file . command_suffix)
 endfunction
 
-function! RunNearestTest()
+function! s:RunNearestTest()
   let spec_line_number = line('.')
-  call RunTestFile(":" . spec_line_number)
+  call s:RunTestFile(":" . spec_line_number)
 endfunction
 
 function! s:RunTests(filename)
@@ -110,18 +109,17 @@ function! s:RunTests(filename)
   call s:SendToTmux(command)
 endfunction
 
-function! s:Keywords()
-  return ['it', 'context', 'describe'] + g:vigun_extra_keywords
+function! s:KeywordsRegexp()
+  let keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario'] + g:vigun_extra_keywords
+  return '^[ \t]*\<\('. join(keywords, '\|') .'\)'
 endfunction
 
 function! s:IsOnlySet()
-  let keywords = join(s:Keywords(), '\|')
-  return search('\<\('.keywords.'\).only(', 'bn')
+  return search(s:KeywordsRegexp().'.only(', 'bn')
 endfunction
 
-function! MochaOnly()
-  let keywords = join(s:Keywords(), '\|')
-  let line_number = search('\<\('.keywords.'\)\(.only\)\?(', 'bn')
+function! s:MochaOnly()
+  let line_number = search(s:KeywordsRegexp().'\(.only\)\?(', 'bn')
 
   if !line_number
     return
@@ -151,12 +149,22 @@ function! s:MochaCommand(mode)
   endfor
 endfunction
 
-au FileType javascript nmap <buffer> <silent> <nowait> <Leader>o :call MochaOnly()\|redraw!<cr>
+function! s:ShowSpecIndex()
+  call setloclist(0, [])
 
-au FileType {ruby,javascript,cucumber} nmap <buffer> <silent> <nowait> <leader>t :call RunTestFile()\|redraw!<cr>
-au FileType {ruby,cucumber} nmap <buffer> <silent> <nowait> <leader>T :call RunNearestTest()\|redraw!<cr>
-au FileType javascript nmap <buffer> <silent> <nowait> <leader>T :call RunNearestMochaTest('normal')\|redraw!<cr>
-au FileType javascript nmap <buffer> <silent> <nowait> <leader>D :call RunNearestMochaTest('debug')\|redraw!<cr>
+  for line_number in range(1,line('$'))
+    if getline(line_number) =~ s:KeywordsRegexp()
+      let expr = printf('%s:%s:%s', expand("%"), line_number, substitute(getline(line_number), '[ \t]', nr2char(160), 'g'))
+      laddexpr expr
+    endif
+  endfor
+
+  lopen
+
+  " hide filename and linenumber
+  set conceallevel=2 concealcursor=nc
+  syntax match llFileName /^[^|]*|[^|]*| / transparent conceal
+endfunction
 
 " for `bundle exec` in front of rspec/cucumber
 if !exists('g:vigun_ruby_test_command_prefix')
@@ -176,3 +184,9 @@ if !exists('g:vigun_mocha_commands')
         \ },
         \]
 endif
+
+com ShowSpecIndex call s:ShowSpecIndex()
+com MochaOnly call s:MochaOnly()|redraw!
+com RunTestFile call s:RunTestFile()|redraw!
+com RunNearestTest call s:RunNearestTest()|redraw!
+com -nargs=1 RunNearestMochaTest call s:RunNearestMochaTest(<args>)|redraw!
