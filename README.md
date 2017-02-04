@@ -76,7 +76,11 @@ If you happen to run tests in karma, you may appreciate `MochaOnly` command. It 
 au FileType javascript nnoremap <Leader>o :MochaOnly<cr>
 ```
 
-Another useful command is `ShowSpecIndex`. It opens up location list with describe/it/context/etc titles so you can quickly navigate between different tests.
+Another useful command is `ShowSpecIndex`. It opens up quickfix window with describe/it/context/etc titles so you can quickly navigate between different tests. It looks like this:
+
+![image](https://cloud.githubusercontent.com/assets/23721/22613599/84043378-ea71-11e6-9592-b3160ce5c252.png)
+
+I am mapping it to `<leader>i`
 
 ```
 nnoremap <Leader>i :ShowSpecIndex<cr>
