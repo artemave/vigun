@@ -78,7 +78,7 @@ au FileType javascript nnoremap <Leader>o :MochaOnly<cr>
 
 Another useful command is `ShowSpecIndex`. It opens up quickfix window with describe/it/context/etc titles so you can quickly navigate between different tests. It looks like this:
 
-![image](https://cloud.githubusercontent.com/assets/23721/22613634/d5b7bb2c-ea71-11e6-8937-5f36bf61030d.png)
+<img src="https://cloud.githubusercontent.com/assets/23721/22613634/d5b7bb2c-ea71-11e6-8937-5f36bf61030d.png" width=500>
 
 I am mapping it to `<leader>i`
 
