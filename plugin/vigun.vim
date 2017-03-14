@@ -47,26 +47,22 @@ function! s:CopyMochaDebugUrlToClipboard()
   let debug_url = ''
   let retry_count = 0
 
-  while debug_url == ''
-    if retry_count > 10
-      return
-    endif
-
+  while retry_count < 50
     call system('tmux capture-pane -J -b mocha-debug')
     call system('tmux save-buffer -b mocha-debug /tmp/vim-mocha-debug')
 
     let debug_url=system("grep chrome-devtools /tmp/vim-mocha-debug | tail -n 1 | sed -e 's/ *//'")
+    let last_buffer_line=system("cat /tmp/vim-mocha-debug | grep -v -e '^$' | tail -n 1")
 
-    if debug_url == ''
-      sleep 20m
-      let retry_count += 1
+    if debug_url != "" && last_buffer_line =~ debug_url
+      let @*=debug_url " copy to osx clipboard
+      let @+=debug_url " copy to linux clipboard
+      return
     endif
-  endwhile
 
-  if debug_url != ''
-    let @*=debug_url " copy to osx clipboard
-    let @+=debug_url " copy to linux clipboard
-  endif
+    sleep 20m
+    let retry_count += 1
+  endwhile
 endfunction
 
 function! s:RunTestFile(...)
