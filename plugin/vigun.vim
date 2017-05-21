@@ -146,16 +146,16 @@ function! s:MochaCommand(mode)
 endfunction
 
 function! s:ShowSpecIndex()
-  call setloclist(0, [])
+  call setqflist([])
 
   for line_number in range(1,line('$'))
     if getline(line_number) =~ s:KeywordsRegexp()
       let expr = printf('%s:%s:%s', expand("%"), line_number, substitute(getline(line_number), '[ \t]', nr2char(160), 'g'))
-      laddexpr expr
+      caddexpr expr
     endif
   endfor
 
-  lopen
+  copen
 
   " hide filename and linenumber
   set conceallevel=2 concealcursor=nc
