@@ -21,9 +21,8 @@ Then drop in these mappings:
 
 ```
 au FileType {ruby,javascript,cucumber} nnoremap <leader>t :RunTestFile<cr>
-au FileType {ruby,cucumber} nnoremap <leader>T :RunNearestTest<cr>
-au FileType javascript nnoremap <leader>T :RunNearestMochaTest 'normal'<cr>
-au FileType javascript nnoremap <leader>D :RunNearestMochaTest 'debug'<cr>
+au FileType {ruby,javascript,cucumber} nnoremap <leader>T :RunNearestTest<cr>
+au FileType javascript nnoremap <leader>D :RunNearesTestDebug<cr>
 ```
 
 And this will add the following:
@@ -36,10 +35,10 @@ And this will add the following:
 
 ## More
 
-The default command is `mocha`. This can be changed. For example if some of your tests are DOM tests that run through [electron-mocha](https://github.com/jprichardson/electron-mocha), then the following setting in your [project vimrc](https://andrew.stwrt.ca/posts/project-specific-vimrc/) will make any test in `test/browser` run via electron-mocha:
+The default commands are `mocha` for javascript, `rspec` for ruby and `cucumber` for cucumber. Those can be changed. For example if some of your tests are DOM tests that run through [electron-mocha](https://github.com/jprichardson/electron-mocha), then the following setting in your [project vimrc](https://andrew.stwrt.ca/posts/project-specific-vimrc/) will make any test in `test/browser` run via electron-mocha:
 
 ```
-let g:vigun_mocha_commands = [
+let g:vigun_commands = [
       \ {
       \   'pattern': 'browser/.*Spec.js$',
       \   'normal': 'electron-mocha --renderer',
@@ -61,12 +60,6 @@ By default lines that start with `it(`, `describe(`, `context(` are considered t
 ```
 let g:vigun_extra_keywords = ['feature', 'scenario', 'example']
 ```
-
-## Gotcha
-
-Assumes `mocha` is in the `$PATH`.
-
-I always add the entire `node_modules/.bin` into the `$PATH` using [direnv](https://direnv.net/). Give it a try. It is useful well beyond this plugin.
 
 ## Bonus
 

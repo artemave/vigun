@@ -3,47 +3,15 @@ if exists("g:vigun_loaded")
 endif
 let g:vigun_loaded = 1
 
-function! s:SetTestCase()
-  let in_test_file = match(expand("%"), 'Spec.js$') != -1
-
-  if in_test_file
-    let t:grb_test_file=@%
-    :wa
-
-    let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
-    let t:nearest_test_title = escape(matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze'), "'()?")
-  end
-endfunction
-
-function! s:SendToTmux(command)
+function s:SendToTmux(command)
   call system('tmux select-window -t test || tmux new-window -n test')
   call system('tmux set-buffer "' . a:command . "\n\"")
   call system('tmux paste-buffer -d -t test')
 endfunction
 
-function! s:RunNearestMochaTest(mode)
-  call s:SetTestCase()
-
-  if !exists("t:grb_test_file")
-    return
-  end
-
-  if s:IsOnlySet()
-    let command = s:MochaCommand(a:mode) . " " . t:grb_test_file
-  else
-    let command = s:MochaCommand(a:mode) . " --fgrep '".t:nearest_test_title."' " . t:grb_test_file
-  endif
-
-  call s:SendToTmux(command)
-
-  if a:mode == 'debug'
-    call s:CopyMochaDebugUrlToClipboard()
-  endif
-endfunction
-
 " This will gracefully do nothing for any command other than `mocha --inspect
 " --debug-brk`
-function! s:CopyMochaDebugUrlToClipboard()
+function s:CopyMochaDebugUrlToClipboard()
   let debug_url = ''
   let retry_count = 0
 
@@ -65,56 +33,71 @@ function! s:CopyMochaDebugUrlToClipboard()
   endwhile
 endfunction
 
-function! s:RunTestFile(...)
-  if a:0
-    let command_suffix = a:1
-  else
-    let command_suffix = ""
+function s:GetCurrentTestMethod(config)
+  if get(a:config, 'current')
+    return a:config.current
   endif
 
-  " Run the tests for the previously-marked file.
-  let in_test_file = match(expand("%"), '\(.feature\|_spec.rb\|Spec.js\)$') != -1
-  if in_test_file
-    let t:grb_test_file=@%
-  elseif !exists("t:grb_test_file")
+  if &filetype == 'javascript'
+    return 'grep'
+  else
+    return 'line_number'
+  endif
+endfunction
+
+function s:RunTests(mode, ...)
+  let config = s:GetConfigForCurrentFile()
+
+  if !exists("config")
     return
-  end
-  call s:RunTests(t:grb_test_file . command_suffix)
-endfunction
+  endif
 
-function! s:RunNearestTest()
-  let spec_line_number = line('.')
-  call s:RunTestFile(":" . spec_line_number)
-endfunction
+  wa
 
-function! s:RunTests(filename)
-  :wa
-  if match(a:filename, '\.feature') != -1
-    if filereadable(expand("./features/support/env.rb"))
-      let l:command = g:vigun_ruby_test_command_prefix . " cucumber " . a:filename
+  let is_debug = exists("a:1") && a:1 == 'debug'
+
+  if is_debug
+    let cmd = get(config, 'debug', config.normal)
+  else
+    let cmd = config.normal
+  endif
+
+  if a:mode == 'current'
+    let current_test_method = s:GetCurrentTestMethod(config)
+
+    if current_test_method == 'line_number'
+      let formatted_cmd = cmd .' '. expand('%').':'.line('.')
     else
-      let l:command = "cucumberjs " . a:filename
+      if s:IsOnlySet()
+        let formatted_cmd = cmd .' '. expand('%')
+      else
+        let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
+        let nearest_test_title = escape(matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze'), "'()?")
+
+        let formatted_cmd = cmd . " --grep '".nearest_test_title."' " . expand('%')
+      endif
     endif
   else
-    if &filetype == 'javascript'
-      let l:command = s:MochaCommand('normal') . ' ' . a:filename
-    else
-      let l:command = g:vigun_ruby_test_command_prefix . " rspec -c " . a:filename
-    endif
-  end
-  call s:SendToTmux(command)
+    let formatted_cmd = cmd .' '. expand('%')
+  endif
+
+  call s:SendToTmux(formatted_cmd)
+
+  if is_debug
+    call s:CopyMochaDebugUrlToClipboard()
+  endif
 endfunction
 
-function! s:KeywordsRegexp()
+function s:KeywordsRegexp()
   let keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario'] + g:vigun_extra_keywords
   return '^[ \t]*\<\('. join(keywords, '\|') .'\)'
 endfunction
 
-function! s:IsOnlySet()
+function s:IsOnlySet()
   return search(s:KeywordsRegexp().'.only(', 'bnw')
 endfunction
 
-function! s:MochaOnly()
+function s:MochaOnly()
   let line_number = search(s:KeywordsRegexp().'\(.only\)\?(', 'bnw')
 
   if !line_number
@@ -137,15 +120,15 @@ function! s:MochaOnly()
   endif
 endfunction
 
-function! s:MochaCommand(mode)
-  for cmd in g:vigun_mocha_commands
+function s:GetConfigForCurrentFile()
+  for cmd in g:vigun_commands
     if match(expand("%"), '\v' . cmd.pattern) != -1
-      return cmd[a:mode]
+      return cmd
     endif
   endfor
 endfunction
 
-function! s:ShowSpecIndex()
+function s:ShowSpecIndex()
   call setqflist([])
 
   for line_number in range(1,line('$'))
@@ -162,27 +145,31 @@ function! s:ShowSpecIndex()
   syntax match llFileName /^[^|]*|[^|]*| / transparent conceal
 endfunction
 
-" for `bundle exec` in front of rspec/cucumber
-if !exists('g:vigun_ruby_test_command_prefix')
-  let g:vigun_ruby_test_command_prefix = ''
-endif
-
 if !exists('g:vigun_extra_keywords')
   let g:vigun_extra_keywords = []
 endif
 
-if !exists('g:vigun_mocha_commands')
-  let g:vigun_mocha_commands = [
+if !exists('g:vigun_commands')
+  let g:vigun_commands = [
         \ {
         \   'pattern': 'Spec.js$',
         \   'normal': 'mocha',
         \   'debug': 'mocha --inspect --debug-brk --no-timeouts',
         \ },
+        \ {
+        \   'pattern': '_spec.rb$',
+        \   'normal': 'rspec',
+        \ },
+        \ {
+        \   'pattern': '.feature$',
+        \   'normal': 'cucumber',
+        \ },
         \]
 endif
 
+com RunTestFile call s:RunTests('all')|redraw!
+com RunNearestTest call s:RunTests('current')|redraw!
+com RunNearestTestDebug call s:RunTests('current', 'debug')|redraw!
+
 com ShowSpecIndex call s:ShowSpecIndex()
 com MochaOnly call s:MochaOnly()|redraw!
-com RunTestFile call s:RunTestFile()|redraw!
-com RunNearestTest call s:RunNearestTest()|redraw!
-com -nargs=1 RunNearestMochaTest call s:RunNearestMochaTest(<args>)|redraw!
