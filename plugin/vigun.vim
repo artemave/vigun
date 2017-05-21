@@ -111,11 +111,11 @@ function! s:KeywordsRegexp()
 endfunction
 
 function! s:IsOnlySet()
-  return search(s:KeywordsRegexp().'.only(', 'bn')
+  return search(s:KeywordsRegexp().'.only(', 'bnw')
 endfunction
 
 function! s:MochaOnly()
-  let line_number = search(s:KeywordsRegexp().'\(.only\)\?(', 'bn')
+  let line_number = search(s:KeywordsRegexp().'\(.only\)\?(', 'bnw')
 
   if !line_number
     return
