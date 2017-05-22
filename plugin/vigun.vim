@@ -5,8 +5,14 @@ let g:vigun_loaded = 1
 
 function s:SendToTmux(command)
   call system('tmux select-window -t test || tmux new-window -n test')
-  call system('tmux set-buffer "' . a:command . "\n\"")
-  call system('tmux paste-buffer -d -t test')
+
+  let tmux_set_buffer = 'tmux set-buffer -b vigun "' . a:command . "\n\""
+  call system(tmux_set_buffer)
+  if v:shell_error
+    echom 'Failed to set-buffer: '.tmux_set_buffer
+  else
+    call system('tmux paste-buffer -b vigun -d -t test')
+  endif
 endfunction
 
 " This will gracefully do nothing for any command other than `mocha --inspect
@@ -72,9 +78,10 @@ function s:RunTests(mode, ...)
         let formatted_cmd = cmd .' '. expand('%')
       else
         let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
-        let nearest_test_title = escape(matchstr(getline(nearest_test_line_number), "['" . '"`]\zs[^"`' . "']" . '*\ze'), "'()?")
+        let nearest_test_title = escape(matchstr(getline(nearest_test_line_number), "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$"), '()?')
+        let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\"', 'g')
 
-        let formatted_cmd = cmd . " --grep '".nearest_test_title."' " . expand('%')
+        let formatted_cmd = cmd . ' --fgrep \"'.nearest_test_title.'\" ' . expand('%')
       endif
     endif
   else
