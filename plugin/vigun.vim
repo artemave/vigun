@@ -95,9 +95,15 @@ function s:RunTests(mode, ...)
   endif
 endfunction
 
-function s:KeywordsRegexp()
-  let keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario'] + g:vigun_extra_keywords
-  return '^[ \t]*\<\('. join(keywords, '\|') .'\)'
+function s:KeywordsRegexp(...)
+  if a:0 && a:1 == 'context'
+    let keywords = ['context', 'describe']
+  else
+    let keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario'] + g:vigun_extra_keywords
+  endif
+  let search = '^[ \t]*\<\('. join(keywords, '\|') .'\)'
+  echom "search: ".search
+  return search
 endfunction
 
 function s:IsOnlySet()
@@ -152,6 +158,36 @@ function s:ShowSpecIndex()
   syntax match llFileName /^[^|]*|[^|]*| / transparent conceal
 endfunction
 
+fun s:CurrentTestBefore()
+  let starting_pos = getpos('.')
+
+  let nearest_test_start = search(s:KeywordsRegexp().'(', 'bWe')
+
+  if nearest_test_start
+    echom "nearest_test_start: ".nearest_test_start
+    let nearest_test_end = searchpair('(', '', ')')
+    echom "nearest_test_end: ".nearest_test_end
+    let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
+    echom "context_start: ".context_start
+    let context_end = searchpair('(', '', ')', 'n')
+    echom "context_end: ".context_end
+
+    let next_test_start = search(s:KeywordsRegexp().'(', 'e')
+    while next_test_start && next_test_start < context_end
+      echom "next_test_start: ".next_test_start
+      if next_test_start != nearest_test_start
+        let next_test_end = searchpair('(', '', ')')
+        echom "next_test_end: ".next_test_end
+        execute next_test_start.",".next_test_end.' fold'
+        normal zC
+      endif
+      let next_test_start = search(s:KeywordsRegexp().'(', 'eW')
+    endwhile
+  endif
+
+  call setpos('.', starting_pos)
+endf
+
 if !exists('g:vigun_extra_keywords')
   let g:vigun_extra_keywords = []
 endif
@@ -180,3 +216,4 @@ com RunNearestTestDebug call s:RunTests('current', 'debug')|redraw!
 
 com ShowSpecIndex call s:ShowSpecIndex()
 com MochaOnly call s:MochaOnly()|redraw!
+com CurrentTestBefore call s:CurrentTestBefore()
