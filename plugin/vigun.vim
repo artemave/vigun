@@ -3,6 +3,12 @@ if exists("g:vigun_loaded")
 endif
 let g:vigun_loaded = 1
 
+fun s:Debug(message)
+  if exists("g:vigun_debug")
+    echom message
+  endif
+endf
+
 function s:SendToTmux(command)
   call system('tmux select-window -t test || tmux new-window -n test')
 
@@ -102,7 +108,6 @@ function s:KeywordsRegexp(...)
     let keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario'] + g:vigun_extra_keywords
   endif
   let search = '^[ \t]*\<\('. join(keywords, '\|') .'\)'
-  echom "search: ".search
   return search
 endfunction
 
@@ -158,34 +163,54 @@ function s:ShowSpecIndex()
   syntax match llFileName /^[^|]*|[^|]*| / transparent conceal
 endfunction
 
-fun s:CurrentTestBefore()
-  let starting_pos = getpos('.')
+fun s:CurrentTestBefore(...)
+  if a:0
+    let nearest_test_start = a:1
+    let nearest_test_end = a:2
+    call cursor(nearest_test_start, 1)
+  else
+    let starting_pos = getpos('.')
+    call cursor(starting_pos[0], 1000)
+    normal zE
 
-  let nearest_test_start = search(s:KeywordsRegexp().'(', 'bWe')
-
-  if nearest_test_start
-    echom "nearest_test_start: ".nearest_test_start
+    let nearest_test_start = search(s:KeywordsRegexp().'(', 'bWe')
     let nearest_test_end = searchpair('(', '', ')')
-    echom "nearest_test_end: ".nearest_test_end
+  endif
+  call s:Debug("nearest_test_start: ".nearest_test_start)
+  call s:Debug("nearest_test_end: ".nearest_test_end)
+
+  if nearest_test_start && nearest_test_end
     let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
-    echom "context_start: ".context_start
+    call s:Debug("context_start: ".context_start)
     let context_end = searchpair('(', '', ')', 'n')
-    echom "context_end: ".context_end
+    call s:Debug("context_end: ".context_end)
+
+    while context_end && context_end < nearest_test_start
+      call cursor(context_start - 1, 1)
+      let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
+      call s:Debug("context_start: ".context_start)
+      let context_end = searchpair('(', '', ')', 'n')
+      call s:Debug("context_end: ".context_end)
+    endwhile
 
     let next_test_start = search(s:KeywordsRegexp().'(', 'e')
     while next_test_start && next_test_start < context_end
-      echom "next_test_start: ".next_test_start
-      if next_test_start != nearest_test_start
+      call s:Debug("next_test_start: ".next_test_start)
+      if next_test_start < nearest_test_start || next_test_start > nearest_test_end
         let next_test_end = searchpair('(', '', ')')
-        echom "next_test_end: ".next_test_end
+        call s:Debug("next_test_end: ".next_test_end)
         execute next_test_start.",".next_test_end.' fold'
         normal zC
       endif
       let next_test_start = search(s:KeywordsRegexp().'(', 'eW')
     endwhile
+
+    call s:CurrentTestBefore(context_start, context_end)
   endif
 
-  call setpos('.', starting_pos)
+  if !a:0
+    call setpos('.', starting_pos)
+  endif
 endf
 
 if !exists('g:vigun_extra_keywords')
