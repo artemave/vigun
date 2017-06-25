@@ -107,7 +107,7 @@ function s:KeywordsRegexp(...)
   else
     let keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario'] + g:vigun_extra_keywords
   endif
-  let search = '^[ \t]*\<\('. join(keywords, '\|') .'\)'
+  let search = '^[ \t]*\<\('. join(keywords, '\|') .'\)\>'
   return search
 endfunction
 
