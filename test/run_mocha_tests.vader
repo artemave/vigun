@@ -1,3 +1,8 @@
+Before:
+  Save g:vigun_commands
+After:
+  Restore g:vigun_commands
+
 Given javascript (js spec file):
   const {expect} = require('chai')
 
@@ -17,13 +22,48 @@ Given javascript (js spec file):
     })
   })
 
-Execute (run all tests in a file):
+Execute (default run all tests in a file):
   file testSpec.js
   RunTestFile
   AssertEqual "mocha testSpec.js", GetLastMessage()
 
-Execute (run test under cursor):
+Execute (default run test under cursor):
   file testSpec.js
   normal 14j
   RunNearestTest
   AssertEqual 'mocha --fgrep \"does not do that\" testSpec.js', GetLastMessage()
+
+Execute (default debug test under cursor):
+  file testSpec.js
+  normal 14j
+  RunNearestTestDebug
+  AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()
+
+Execute (with a different command):
+  file browser/testSpec.js
+  let g:vigun_commands = [
+        \ {
+        \   'pattern': 'browser/.*Spec.js$',
+        \   'normal': 'electron-mocha --renderer',
+        \   'debug': 'electron-mocha --interactive',
+        \ },
+        \ {
+        \   'pattern': 'Spec.js$',
+        \   'normal': 'mocha',
+        \   'debug': 'mocha --inspect-brk --no-timeouts',
+        \ },
+        \]
+
+  RunTestFile
+  AssertEqual "electron-mocha --renderer browser/testSpec.js", GetLastMessage()
+
+  normal 14j
+  RunNearestTestDebug
+  AssertEqual 'electron-mocha --interactive --fgrep \"does not do that\" browser/testSpec.js', GetLastMessage()
+
+  file testSpec.js
+  RunTestFile
+  AssertEqual "mocha testSpec.js", GetLastMessage()
+
+  RunNearestTestDebug
+  AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()

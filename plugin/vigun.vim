@@ -26,8 +26,7 @@ function s:SendToTmux(command)
   endif
 endfunction
 
-" This will gracefully do nothing for any command other than `mocha --inspect
-" --debug-brk`
+" This will gracefully do nothing for any command other than `mocha --inspect-brk`
 function s:CopyMochaDebugUrlToClipboard()
   let debug_url = ''
   let retry_count = 0
@@ -101,7 +100,7 @@ function s:RunTests(mode, ...)
 
   call s:SendToTmux(formatted_cmd)
 
-  if is_debug
+  if is_debug && !exists('g:vigun_dry_run')
     call s:CopyMochaDebugUrlToClipboard()
   endif
 endfunction
@@ -227,7 +226,7 @@ if !exists('g:vigun_commands')
         \ {
         \   'pattern': 'Spec.js$',
         \   'normal': 'mocha',
-        \   'debug': 'mocha --inspect --debug-brk --no-timeouts',
+        \   'debug': 'mocha --inspect-brk --no-timeouts',
         \ },
         \ {
         \   'pattern': '_spec.rb$',
