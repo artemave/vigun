@@ -1,4 +1,4 @@
-Given javascript (spec file):
+Given javascript (js spec file):
   const {expect} = require('chai')
 
   describe('a thing', function() {
@@ -18,12 +18,12 @@ Given javascript (spec file):
   })
 
 Execute (run all tests in a file):
-  file ./test/testSpec.js
+  file testSpec.js
   RunTestFile
-  AssertEqual "mocha ./test/testSpec.js", GetLastMessage()
+  AssertEqual "mocha testSpec.js", GetLastMessage()
 
 Execute (run test under cursor):
-  file ./test/testSpec.js
+  file testSpec.js
   normal 14j
   RunNearestTest
-  AssertEqual 'mocha --fgrep \"does not do that\" ./test/testSpec.js', GetLastMessage()
+  AssertEqual 'mocha --fgrep \"does not do that\" testSpec.js', GetLastMessage()

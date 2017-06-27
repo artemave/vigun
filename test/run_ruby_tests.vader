@@ -1,0 +1,25 @@
+Given ruby (ruby spec file):
+  require 'spec_helper'
+
+  describe Thing do
+    it 'does this' do
+      puts "Yaya"
+    end
+
+    context 'at night' do
+      it 'does not do that' do
+        puts 'Yoyo'
+      end
+    end
+  end
+
+Execute (run all tests in a file):
+  file test_spec.rb
+  RunTestFile
+  AssertEqual "rspec test_spec.rb", GetLastMessage()
+
+Execute (run test under cursor):
+  file test_spec.rb
+  normal 9j
+  RunNearestTest
+  AssertEqual 'rspec test_spec.rb:10', GetLastMessage()
