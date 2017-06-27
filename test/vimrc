@@ -1,0 +1,14 @@
+filetype off
+set rtp+=~/.vim/bundle/vader.vim
+set rtp+=~/.vim/bundle/vigun
+filetype plugin indent on
+syntax enable
+
+fun GetLastMessage()
+  redir => msgs
+  silent messages
+  redir END
+  return get(split(msgs, "\n"), -1, "")
+endf
+
+let g:vigun_dry_run=1

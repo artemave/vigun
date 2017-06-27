@@ -10,6 +10,11 @@ fun s:Debug(message)
 endf
 
 function s:SendToTmux(command)
+  if exists("g:vigun_dry_run")
+    echom a:command
+    return
+  endif
+
   call system('tmux select-window -t test || tmux new-window -n test')
 
   let tmux_set_buffer = 'tmux set-buffer -b vigun "' . a:command . "\n\""

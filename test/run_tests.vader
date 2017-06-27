@@ -1,0 +1,29 @@
+Given javascript (spec file):
+  const {expect} = require('chai')
+
+  describe('a thing', function() {
+    beforeEach(function() {
+      this.timeout = 200
+    })
+
+    it('does this', function() {
+      const a = 2
+      expect(a).to.eq(2)
+    })
+
+    it('does not do that', function() {
+      const a = 2
+      expect(a).to.eq(2)
+    })
+  })
+
+Execute (run all tests in a file):
+  file ./test/testSpec.js
+  RunTestFile
+  AssertEqual "mocha ./test/testSpec.js", GetLastMessage()
+
+Execute (run test under cursor):
+  file ./test/testSpec.js
+  normal 14j
+  RunNearestTest
+  AssertEqual 'mocha --fgrep \"does not do that\" ./test/testSpec.js', GetLastMessage()
