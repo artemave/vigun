@@ -1,6 +1,8 @@
 # vigun
 Unclutter your test diet.
 
+[![Build Status](https://travis-ci.org/artemave/vigun.svg?branch=master)](https://travis-ci.org/artemave/vigun)
+
 ## What is this?
 
 Vim plugin to run mocha tests from vim in a separate tmux window.
@@ -77,4 +79,11 @@ I am mapping it to `<leader>i`
 
 ```
 nnoremap <Leader>i :ShowSpecIndex<cr>
+```
+
+## Running Plugin Tests
+
+```
+  git clone https://github.com/junegunn/vader.vim.git
+  ./run_tests
 ```

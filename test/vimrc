@@ -1,6 +1,6 @@
 filetype off
-set rtp+=~/.vim/bundle/vader.vim
-set rtp+=~/.vim/bundle/vigun
+set rtp+=vader.vim
+set rtp+=.
 filetype plugin indent on
 syntax enable
 
