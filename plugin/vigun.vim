@@ -148,6 +148,7 @@ function s:GetConfigForCurrentFile()
       return cmd
     endif
   endfor
+  throw "There is no command to run ".expand('%').". Please set one up in g:vigun_commands"
 endfunction
 
 function s:ShowSpecIndex()

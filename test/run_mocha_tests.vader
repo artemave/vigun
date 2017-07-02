@@ -67,3 +67,8 @@ Execute (with a different command):
 
   RunNearestTestDebug
   AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()
+
+Execute (when there is no command for a file name):
+  file blahStuff.js
+  AssertThrows RunTestFile
+  AssertEqual g:vader_exception, "There is no command to run blahStuff.js. Please set one up in g:vigun_commands"
