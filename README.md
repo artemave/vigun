@@ -1,5 +1,5 @@
 # vigun
-Unclutter your test diet.
+Unclutter your test diet
 
 [![Build Status](https://travis-ci.org/artemave/vigun.svg?branch=master)](https://travis-ci.org/artemave/vigun)
 
@@ -7,7 +7,7 @@ Unclutter your test diet.
 
 Vim plugin to run tests in a separate tmux window.
 
-Out of the box, it works with mocha, rspec and cucumber. A lot more can be supported through custom config.
+Out of the box it works with mocha, rspec and cucumber. A lot more can be supported through custom config.
 
 ## Installation
 
