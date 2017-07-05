@@ -15,7 +15,7 @@ function s:SendToTmux(command)
     return
   endif
 
-  call system('tmux select-window -t test || tmux new-window -n test')
+  call system('tmux select-window -t test || tmux new-window -c '.getcwd().' -n test')
 
   let tmux_set_buffer = 'tmux set-buffer -b vigun "' . a:command . "\n\""
   call system(tmux_set_buffer)
