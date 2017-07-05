@@ -48,9 +48,9 @@ Vigun comes with no bindings, but does add the following commands:
 ```vimscript
 au FileType {ruby,javascript,cucumber} nnoremap <leader>t :VigunRunTestFile<cr>
 au FileType {ruby,javascript,cucumber} nnoremap <leader>T :VigunRunNearestTest<cr>
-au FileType {javascript,cucumber} nnoremap <leader>D :VigunRunNearestTestDebug<cr>
+au FileType javascript nnoremap <leader>D :VigunRunNearestTestDebug<cr>
 au FileType javascript nnoremap <Leader>o :VigunMochaOnly<cr>
-au FileType {ruby,javascript,go} nnoremap <leader>i :VigunShowSpecIndex<cr>
+au FileType {ruby,javascript} nnoremap <leader>i :VigunShowSpecIndex<cr>
 ```
 
 ## Custom test commands
