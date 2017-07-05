@@ -22,9 +22,9 @@ Plugin 'artemave/vigun'
 Then drop in these mappings:
 
 ```
-au FileType {ruby,javascript,cucumber} nnoremap <leader>t :RunTestFile<cr>
-au FileType {ruby,javascript,cucumber} nnoremap <leader>T :RunNearestTest<cr>
-au FileType javascript nnoremap <leader>D :RunNearesTestDebug<cr>
+au FileType {ruby,javascript,cucumber} nnoremap <leader>t :VigunRunTestFile<cr>
+au FileType {ruby,javascript,cucumber} nnoremap <leader>T :VigunRunNearestTest<cr>
+au FileType javascript nnoremap <leader>D :VigunRunNearesTestDebug<cr>
 ```
 
 And this will add the following:
@@ -68,17 +68,17 @@ let g:vigun_extra_keywords = ['feature', 'scenario', 'example']
 If you happen to run tests in karma, you may appreciate `MochaOnly` command. It toggles `.only` for a test under cursor. I am mapping it to `<leader>o`:
 
 ```
-au FileType javascript nnoremap <Leader>o :MochaOnly<cr>
+au FileType javascript nnoremap <Leader>o :VigunMochaOnly<cr>
 ```
 
-Another useful command is `ShowSpecIndex`. It opens up quickfix window with describe/it/context/etc titles so you can quickly navigate between different tests. It looks like this:
+Another useful command is `VigunShowSpecIndex`. It opens up quickfix window with describe/it/context/etc titles so you can quickly navigate between different tests. It looks like this:
 
 <img src="https://cloud.githubusercontent.com/assets/23721/22613634/d5b7bb2c-ea71-11e6-8937-5f36bf61030d.png" width=500>
 
 I am mapping it to `<leader>i`
 
 ```
-nnoremap <Leader>i :ShowSpecIndex<cr>
+nnoremap <Leader>i :VigunShowSpecIndex<cr>
 ```
 
 ## Running Plugin Tests

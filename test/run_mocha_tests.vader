@@ -24,19 +24,19 @@ Given javascript (js spec file):
 
 Execute (default run all tests in a file):
   file testSpec.js
-  RunTestFile
+  VigunRunTestFile
   AssertEqual "mocha testSpec.js", GetLastMessage()
 
 Execute (default run test under cursor):
   file testSpec.js
   normal 14j
-  RunNearestTest
+  VigunRunNearestTest
   AssertEqual 'mocha --fgrep \"does not do that\" testSpec.js', GetLastMessage()
 
 Execute (default debug test under cursor):
   file testSpec.js
   normal 14j
-  RunNearestTestDebug
+  VigunRunNearestTestDebug
   AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()
 
 Execute (with a different command):
@@ -54,21 +54,21 @@ Execute (with a different command):
         \ },
         \]
 
-  RunTestFile
+  VigunRunTestFile
   AssertEqual "electron-mocha --renderer browser/testSpec.js", GetLastMessage()
 
   normal 14j
-  RunNearestTestDebug
+  VigunRunNearestTestDebug
   AssertEqual 'electron-mocha --interactive --fgrep \"does not do that\" browser/testSpec.js', GetLastMessage()
 
   file testSpec.js
-  RunTestFile
+  VigunRunTestFile
   AssertEqual "mocha testSpec.js", GetLastMessage()
 
-  RunNearestTestDebug
+  VigunRunNearestTestDebug
   AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()
 
 Execute (when there is no command for a file name):
   file blahStuff.js
-  AssertThrows RunTestFile
+  AssertThrows VigunRunTestFile
   AssertEqual g:vader_exception, "There is no command to run blahStuff.js. Please set one up in g:vigun_commands"

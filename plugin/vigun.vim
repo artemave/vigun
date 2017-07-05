@@ -240,10 +240,10 @@ if !exists('g:vigun_commands')
         \]
 endif
 
-com RunTestFile call s:RunTests('all')|redraw!
-com RunNearestTest call s:RunTests('current')|redraw!
-com RunNearestTestDebug call s:RunTests('current', 'debug')|redraw!
+com VigunRunTestFile call s:RunTests('all')|redraw!
+com VigunRunNearestTest call s:RunTests('current')|redraw!
+com VigunRunNearestTestDebug call s:RunTests('current', 'debug')|redraw!
 
-com ShowSpecIndex call s:ShowSpecIndex()
-com MochaOnly call s:MochaOnly()|redraw!
-com CurrentTestBefore call s:CurrentTestBefore()
+com VigunShowSpecIndex call s:ShowSpecIndex()
+com VigunMochaOnly call s:MochaOnly()|redraw!
+com VigunCurrentTestBefore call s:CurrentTestBefore()
