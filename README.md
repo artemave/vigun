@@ -45,7 +45,7 @@ Vigun comes with no bindings, but does add the following commands:
 
 ### Example bindings
 
-```vimscript
+```vim script
 au FileType {ruby,javascript,cucumber} nnoremap <leader>t :VigunRunTestFile<cr>
 au FileType {ruby,javascript,cucumber} nnoremap <leader>T :VigunRunNearestTest<cr>
 au FileType javascript nnoremap <leader>D :VigunRunNearestTestDebug<cr>
@@ -57,7 +57,7 @@ au FileType {ruby,javascript} nnoremap <leader>i :VigunShowSpecIndex<cr>
 
 The default commands are `mocha` for javascript, `rspec` for ruby and `cucumber` for cucumber. Those can be changed. For example if some of your tests are DOM tests, then you may want to use [electron-mocha](https://github.com/jprichardson/electron-mocha) and [cucumber-electron](https://github.com/cucumber/cucumber-electron) instead of mocha and cucumber. The following setting (best kept in [project vimrc](https://andrew.stwrt.ca/posts/project-specific-vimrc/)) will do the trick:
 
-```vimscript
+```vim script
 let g:vigun_commands = [
       \ {
       \   'pattern': 'browser/.*Spec.js$',
@@ -82,7 +82,7 @@ Note that `pattern` is a regular expression (not glob). Also note that match ord
 
 By default lines that start with `it(`, `describe(`, `context(` are considered test boundaries. This can be extended:
 
-```vimscript
+```vim script
 let g:vigun_extra_keywords = ['feature', 'scenario', 'example']
 ```
 
