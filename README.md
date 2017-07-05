@@ -13,7 +13,7 @@ Out of the box, it works with mocha, rspec and cucumber. A lot more can be suppo
 
 Use [a pluging manager](https://github.com/VundleVim/Vundle.vim):
 
-```vimscript
+```vim script
 Plugin 'artemave/vigun'
 ```
 
