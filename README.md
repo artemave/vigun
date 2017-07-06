@@ -88,10 +88,6 @@ let g:vigun_extra_keywords = ['feature', 'scenario', 'example']
 
 Both of the above combined can be used to run a lot of different types of tests.
 
-## Caveat
-
-Vigun creates new tmux window named `test` and then relies on that window being around. If you're using `oh-my-zsh`, this won't work as `oh-my-zsh` renames all the windows automatically. To disable window auto renaming, stick `DISABLE_AUTO_TITLE=true` into `.zshrc` (see [here](https://superuser.com/questions/306028/tmux-and-zsh-custom-prompt-bug-with-window-name/320316#320316) for details).
-
 ## Running Plugin Tests
 
 ```

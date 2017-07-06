@@ -15,14 +15,25 @@ function s:SendToTmux(command)
     return
   endif
 
-  call system('tmux select-window -t test || tmux new-window -c '.getcwd().' -n test')
+  call system('tmux select-window -t test')
+  if v:shell_error
+    if exists("g:vigun_test_window_index")
+      call system('tmux select-window -t '.g:vigun_test_window_index)
+      if v:shell_error
+        call system('tmux new-window -c '.getcwd().' -n test')
+      endif
+    else
+      call system('tmux new-window -c '.getcwd().' -n test')
+    endif
+  endif
+  let g:vigun_test_window_index = system("tmux display-message -p '#I'")
 
   let tmux_set_buffer = 'tmux set-buffer -b vigun "' . a:command . "\n\""
   call system(tmux_set_buffer)
   if v:shell_error
     echom 'Failed to set-buffer: '.tmux_set_buffer
   else
-    call system('tmux paste-buffer -b vigun -d -t test')
+    call system('tmux paste-buffer -b vigun -d -t '.g:vigun_test_window_index)
   endif
 endfunction
 
