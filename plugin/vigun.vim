@@ -5,7 +5,7 @@ let g:vigun_loaded = 1
 
 fun s:Debug(message)
   if exists("g:vigun_debug")
-    echom message
+    echom a:message
   endif
 endf
 
@@ -202,7 +202,7 @@ fun s:CurrentTestBefore(...)
     call s:Debug("context_end: ".context_end)
 
     while context_end && context_end < nearest_test_start
-      call cursor(context_start - 1, 1)
+      call cursor(context_start, 1)
       let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
       call s:Debug("context_start: ".context_start)
       let context_end = searchpair('(', '', ')', 'n')

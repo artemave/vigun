@@ -11,4 +11,27 @@ fun GetLastMessage()
   return get(split(msgs, "\n"), -1, "")
 endf
 
+fun LogAllMessages()
+  redir => msgs
+  silent messages
+  redir END
+  Log msgs
+endf
+
+fun GetFolds()
+  let folds = []
+  let linenr = 1
+  while linenr <= line("$")
+    if foldclosed(linenr) > -1
+      let foldstart = linenr
+      let foldend = foldclosedend(linenr)
+      call add(folds, [foldstart, foldend])
+      let linenr = foldend
+    endif
+    let linenr += 1
+  endwhile
+  return folds
+endf
+
 let g:vigun_dry_run=1
+" let g:vigun_debug = 1

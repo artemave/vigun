@@ -1,0 +1,26 @@
+After:
+  normal zE
+
+Given javascript (js spec file):
+  const {expect} = require('chai')
+
+  describe('a thing', function() {
+    context('with no setup', function() {
+      it('does this', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+    })
+
+    describe('work', function() {
+      it('does not do that', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+    })
+  })
+
+Execute (folds without beforeEach):
+  normal 13j
+  VigunCurrentTestBefore
+  AssertEqual [[4,9]], GetFolds()

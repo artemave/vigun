@@ -1,0 +1,64 @@
+After:
+  normal zE
+
+Given javascript (js spec file):
+  const {expect} = require('chai')
+
+  describe('a thing', function() {
+    it('does this', function() {
+      const a = 2
+      expect(a).to.eq(2)
+    })
+
+    context('with no setup', function() {
+      it('does this', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+
+      it('does this', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+    })
+
+    describe('work', function() {
+      beforeEach(function() {
+        const b = 1
+      })
+      it('does not do that', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+
+      it('does not do that', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+    })
+  })
+
+Execute (folds first level if):
+  normal 5j
+  VigunCurrentTestBefore
+  AssertEqual [[9,19], [21,34]], GetFolds()
+
+Execute (folds first 'it' in the first nested context):
+  normal 11j
+  VigunCurrentTestBefore
+  AssertEqual [[4,7], [15,18], [21,34]], GetFolds()
+
+Execute (folds second 'it' in first nested context):
+  normal 16j
+  VigunCurrentTestBefore
+  AssertEqual [[4,7], [10,13], [21,34]], GetFolds()
+
+Execute (folds first 'it' in the second nested context with beforeEach):
+  normal 26j
+  VigunCurrentTestBefore
+  AssertEqual [[4,7], [9,19], [30,33]], GetFolds()
+
+Execute (folds second 'it' in the second nested context with beforeEach):
+  normal 31j
+  VigunCurrentTestBefore
+  AssertEqual [[4,7], [9,19], [25,28]], GetFolds()
