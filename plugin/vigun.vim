@@ -99,7 +99,7 @@ function s:RunTests(mode, ...)
         let formatted_cmd = cmd .' '. expand('%')
       else
         let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
-        let nearest_test_title = escape(matchstr(getline(nearest_test_line_number), "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$"), '()?')
+        let nearest_test_title = escape(s:TestTitle(nearest_test_line_number), '()?')
         let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\"', 'g')
 
         let formatted_cmd = cmd . ' --fgrep \"'.nearest_test_title.'\" ' . expand('%')
@@ -115,6 +115,10 @@ function s:RunTests(mode, ...)
     call s:CopyMochaDebugUrlToClipboard()
   endif
 endfunction
+
+fun s:TestTitle(line_number)
+  return matchstr(getline(a:line_number), "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$")
+endf
 
 function s:KeywordsRegexp(...)
   if a:0 && a:1 == 'context'
@@ -166,8 +170,11 @@ function s:ShowSpecIndex()
   call setqflist([])
 
   for line_number in range(1,line('$'))
-    if getline(line_number) =~ s:KeywordsRegexp()
-      let expr = printf('%s:%s:%s', expand("%"), line_number, substitute(getline(line_number), '[ \t]', nr2char(160), 'g'))
+    let line = getline(line_number)
+    if line =~ s:KeywordsRegexp()
+      let indent = substitute(line, '^\([ \t]*\).*', {m -> m[1]}, '')
+      let indent = substitute(indent, '[ \t]', nr2char(160), 'g')
+      let expr = printf('%s:%s:%s', expand("%"), line_number, indent . s:TestTitle(line_number))
       caddexpr expr
     endif
   endfor

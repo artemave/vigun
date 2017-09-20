@@ -8,7 +8,7 @@ Given javascript (js spec file):
     })
 
     context("with no setup", function() {
-      it('does this', function() {
+      it('does that', function() {
         const a = 2
         expect(a).to.eq(2)
       })
@@ -18,8 +18,8 @@ Given javascript (js spec file):
 Execute:
   VigunShowSpecIndex
   AssertEqual GetQFList(), [
-    \ {'lnum': 3,  'text': "describe('a thing', function() {"},
-    \ {'lnum': 4,  'text': "  it('does this', function() {"},
-    \ {'lnum': 9,  'text': '  context("with no setup", function() {'},
-    \ {'lnum': 10, 'text': "    it('does this', function() {"},
+    \ {'lnum': 3,  'text': 'a thing'},
+    \ {'lnum': 4,  'text': '  does this'},
+    \ {'lnum': 9,  'text': '  with no setup'},
+    \ {'lnum': 10, 'text': '    does that'},
   \]
