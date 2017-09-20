@@ -33,5 +33,11 @@ fun GetFolds()
   return folds
 endf
 
+fun GetQFList()
+  let qflist = getqflist()
+  call map(qflist, {k,v -> {'lnum': v.lnum, 'text': substitute(v.text, nr2char(160), ' ', 'g')}})
+  return qflist
+endf
+
 let g:vigun_dry_run=1
 " let g:vigun_debug = 1

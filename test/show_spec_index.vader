@@ -1,0 +1,25 @@
+Given javascript (js spec file):
+  const {expect} = require('chai')
+
+  describe('a thing', function() {
+    it('does this', function() {
+      const a = 2
+      expect(a).to.eq(2)
+    })
+
+    context("with no setup", function() {
+      it('does this', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+    })
+  })
+
+Execute:
+  VigunShowSpecIndex
+  AssertEqual GetQFList(), [
+    \ {'lnum': 3,  'text': "describe('a thing', function() {"},
+    \ {'lnum': 4,  'text': "  it('does this', function() {"},
+    \ {'lnum': 9,  'text': '  context("with no setup", function() {'},
+    \ {'lnum': 10, 'text': "    it('does this', function() {"},
+  \]
