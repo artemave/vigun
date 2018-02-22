@@ -172,7 +172,7 @@ function s:ShowSpecIndex()
   for line_number in range(1,line('$'))
     let line = getline(line_number)
     if line =~ s:KeywordsRegexp()
-      let indent = substitute(line, '^\([ \t]*\).*', {m -> m[1]}, '')
+      let indent = substitute(line, '^\([ \t]*\).*', '\=submatch(1)', '')
       let indent = substitute(indent, '[ \t]', nr2char(160), 'g')
       let expr = printf('%s:%s:%s', expand("%"), line_number, indent . s:TestTitle(line_number))
       caddexpr expr
