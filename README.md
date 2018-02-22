@@ -11,7 +11,7 @@ Out of the box it works with mocha, rspec and cucumber. A lot more can be suppor
 
 ## Installation
 
-Use [a pluging manager](https://github.com/VundleVim/Vundle.vim):
+Use [a plugin manager](https://github.com/VundleVim/Vundle.vim):
 
 ```vim script
 Plugin 'artemave/vigun'
