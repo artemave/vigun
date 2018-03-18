@@ -131,28 +131,41 @@ function s:KeywordsRegexp(...)
 endfunction
 
 function s:IsOnlySet()
-  return search(s:KeywordsRegexp().'.only(', 'bnw')
+  return search(s:KeywordsRegexp().'\.only(', 'nw')
 endfunction
 
-function s:MochaOnly()
-  let line_number = search(s:KeywordsRegexp().'\(.only\)\?(', 'bnw')
+fun s:SubstituteAll(pattern, ...)
+  let l = 1
+  for line in getline(1, '$')
+    if match(line, a:pattern)
+      let replacement = ''
+      if a:0
+        replacement = a:0
+      endif
 
-  if !line_number
+      call setline(l, substitute(line, a:pattern, replacement, 'g'))
+    endif
+    let l = l + 1
+  endfor
+endf
+
+function s:MochaOnly()
+  let current_test_line_number = search(s:KeywordsRegexp().'\(\.only\)\?(', 'bnw')
+
+  if !current_test_line_number
     return
   endif
 
-  let line = getline(line_number)
+  let line = getline(current_test_line_number)
+  call s:SubstituteAll('\.only')
 
-  if match(line, '\<\i\+\.only\>') >= 0
-    let newline = substitute(line, '\<\(\i\+\)\.only\>', '\1', '')
-    call setline(line_number, newline)
-  else
+  if match(line, '\<\i\+\.only\>') == -1
     let newline = substitute(line, '\<\i\+\>', '&.only', '')
-    call setline(line_number, newline)
+    call setline(current_test_line_number, newline)
   endif
 
-  if line_number < line("w0")
-    call cursor(line_number, 1)
+  if current_test_line_number < line("w0")
+    call cursor(current_test_line_number, 1)
     normal! f(
   endif
 endfunction

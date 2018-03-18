@@ -39,5 +39,10 @@ fun GetQFList()
   return qflist
 endf
 
+fun GetMatchCount(pattern)
+  let match_count = execute('%s/'.a:pattern.'//gne')
+  return str2nr(split(match_count)[0])
+endf
+
 let g:vigun_dry_run=1
 " let g:vigun_debug = 1

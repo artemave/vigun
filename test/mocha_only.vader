@@ -1,0 +1,39 @@
+After:
+  Restore
+
+Given javascript (js spec file):
+  const {expect} = require('chai')
+
+  describe('a thing', function() {
+    it('does this', function() {
+      const a = 2
+      expect(a).to.eq(2)
+    })
+
+    context('with no setup', function() {
+      it('does this', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+
+      it('does this', function() {
+        const a = 2
+        expect(a).to.eq(2)
+      })
+    })
+  })
+
+
+Execute (toggles `.only` for current test):
+  :15
+  VigunMochaOnly
+  Assert match(getline(14), '\.only'), "Expected `.only` on current test"
+  VigunMochaOnly
+  Assert match(getline(14), '\.only') == -1, "Expected `.only` on current test"
+
+Execute (removes `.only` first if it is already present elsewhere in the file):
+  :15
+  VigunMochaOnly
+  :4
+  VigunMochaOnly
+  AssertEqual GetMatchCount('\.only'), 1
