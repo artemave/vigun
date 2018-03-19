@@ -65,7 +65,7 @@ function s:GetCurrentTestMethod(config)
     return a:config.current
   endif
 
-  if &filetype == 'javascript'
+  if &filetype =~ 'javascript'
     return 'grep'
   else
     return 'line_number'
