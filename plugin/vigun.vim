@@ -180,18 +180,18 @@ function s:GetConfigForCurrentFile()
 endfunction
 
 function s:ShowSpecIndex()
-  call setqflist([])
+  let qflist_entries = []
 
   for line_number in range(1,line('$'))
     let line = getline(line_number)
     if line =~ s:KeywordsRegexp()
       let indent = substitute(line, '^\([ \t]*\).*', '\=submatch(1)', '')
       let indent = substitute(indent, '[ \t]', nr2char(160), 'g')
-      let expr = printf('%s:%s:%s', expand("%"), line_number, indent . s:TestTitle(line_number))
-      caddexpr expr
+      call add(qflist_entries, {'filename': expand('%'), 'lnum': line_number, 'text': indent . s:TestTitle(line_number)})
     endif
   endfor
 
+  call setqflist([], 'r', {'title': 'Spec index', 'items': qflist_entries})
   copen
 
   " hide filename and linenumber
