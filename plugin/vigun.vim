@@ -257,8 +257,8 @@ if !exists('g:vigun_commands')
   let g:vigun_commands = [
         \ {
         \   'pattern': 'Spec.js$',
-        \   'normal': 'mocha',
-        \   'debug': 'mocha --inspect-brk --no-timeouts',
+        \   'normal': './node_modules/.bin/mocha',
+        \   'debug': './node_modules/.bin/mocha --inspect-brk --no-timeouts',
         \ },
         \ {
         \   'pattern': '_spec.rb$',
