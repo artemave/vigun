@@ -61,8 +61,8 @@ function s:CopyMochaDebugUrlToClipboard()
 endfunction
 
 function s:GetCurrentTestMethod(config)
-  if get(a:config, 'current')
-    return a:config.current
+  if has_key(a:config, 'currentTestStrategy') == 1
+    return a:config.currentTestStrategy
   endif
 
   if &filetype =~ 'javascript'

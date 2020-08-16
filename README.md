@@ -63,6 +63,12 @@ let g:vigun_commands = [
       \   'debug': 'electron-mocha --interactive --no-timeouts',
       \ },
       \ {
+      \   'pattern': 'test/.*Test.js$',
+      \   'normal': 'donc',
+      \   'debug': 'donc --inspect-brk',
+      \   'currentTestStrategy': 'line_number', " run current test will append current test line number at the end of the test command
+      \ },
+      \ {
       \   'pattern': '.feature$',
       \   'normal': 'cucumber-electron',
       \   'debug': 'cucumber-electron --electron-debug',
