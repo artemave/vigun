@@ -102,7 +102,7 @@ function s:RunTests(mode, ...)
         let nearest_test_title = escape(s:TestTitle(nearest_test_line_number), '()?')
         let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\"', 'g')
 
-        let formatted_cmd = cmd . ' --fgrep \"'.nearest_test_title.'\" ' . expand('%')
+        let formatted_cmd = cmd . ' '. s:GetFgrepOption(config).'\"'.nearest_test_title.'\" ' . expand('%')
       endif
     endif
   else
@@ -115,6 +115,14 @@ function s:RunTests(mode, ...)
     call s:CopyMochaDebugUrlToClipboard()
   endif
 endfunction
+
+fun s:GetFgrepOption(config)
+  let fgrep = '--fgrep '
+  if has_key(a:config, 'grep') == 1
+    let fgrep = a:config.grep
+  endif
+  return fgrep
+endf
 
 fun s:TestTitle(line_number)
   return matchstr(getline(a:line_number), "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$")

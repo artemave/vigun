@@ -77,6 +77,7 @@ let g:vigun_commands = [
       \   'pattern': 'Spec.js$',
       \   'normal': 'mocha',
       \   'debug': 'electron-mocha --interactive --no-timeouts',
+      \   'grep': '--fgrep ', " explicitely set option name for grepping out current test name
       \ },
       \]
 ```
