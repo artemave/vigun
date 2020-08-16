@@ -1,7 +1,5 @@
-# vigun
+# vigun [![CircleCI](https://circleci.com/gh/artemave/vigun.svg?style=svg)](https://circleci.com/gh/artemave/vigun)
 Unclutter your test diet
-
-[![Build Status](https://travis-ci.org/artemave/vigun.svg?branch=master)](https://travis-ci.org/artemave/vigun)
 
 ## What is this?
 

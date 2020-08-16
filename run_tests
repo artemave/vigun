@@ -1,3 +1,13 @@
 #!/usr/bin/env bash
 
-vim -Nu ./test/vimrc -c 'Vader! test/**/*.vader'
+set -e
+
+test_file=${1:-test/**/*.vader}
+
+if [ -z "$CI" ]; then
+  cmd=vim
+else
+  cmd=./squashfs-root/usr/bin/nvim
+fi
+
+$cmd -es -Nu ./test/vimrc -c "Vader! $test_file"

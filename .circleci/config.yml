@@ -1,0 +1,15 @@
+version: 2.1
+jobs:
+   build:
+     docker:
+       - image: circleci/node
+     steps:
+       - checkout
+       - run: sudo apt-get update
+       - run: sudo apt-get install --yes git vim
+       - run: sudo curl -LO https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
+       - run: sudo chmod +x nvim.appimage
+       - run: sudo ./nvim.appimage --appimage-extract
+       - run: sudo chmod -R a+rwx ./squashfs-root
+       - run: git clone https://github.com/junegunn/vader.vim.git
+       - run: ./run_tests
