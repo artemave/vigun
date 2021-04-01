@@ -15,18 +15,9 @@ function s:SendToTmux(command)
     return
   endif
 
-  call system('tmux select-window -t test')
-  if v:shell_error
-    call system('tmux new-window -n test')
-  endif
+  call system('tmux select-window -t test || tmux new-window -n test')
 
-  let tmux_set_buffer = 'tmux set-buffer -b vigun "' . a:command . "\n\""
-  call system(tmux_set_buffer)
-  if v:shell_error
-    echom 'Failed to set-buffer: '.tmux_set_buffer
-  else
-    call system('tmux paste-buffer -b vigun -d -t test')
-  endif
+  call system('tmux send-keys "'. a:command .'" Enter')
 endfunction
 
 " This will gracefully do nothing for any command other than `mocha --inspect-brk`
