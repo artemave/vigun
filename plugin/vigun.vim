@@ -17,6 +17,11 @@ function s:SendToTmux(command)
 
   call system('tmux select-window -t test || tmux new-window -n test')
 
+  " only send C-c if something (e.g. entr) is running in the test window
+  let number_of_procs = system("ps -o comm= -t \"$(tmux list-panes -t test -F '#{pane_tty}')\" | wc -l")
+  if number_of_procs > 1
+    call system('tmux send-keys C-c')
+  endif
   call system('tmux send-keys "'. a:command .'" Enter')
 endfunction
 
