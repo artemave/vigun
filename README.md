@@ -5,7 +5,7 @@ Unclutter your test diet
 
 Vim plugin to run tests in a separate tmux window.
 
-Out of the box it works with mocha, rspec and cucumber. A lot more can be supported through custom config.
+Out of the box it works with mocha, rspec and cucumber. Other test frameworks can be supported through extensible configuration system.
 
 ## Installation
 
