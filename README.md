@@ -9,25 +9,25 @@ Out of the box it works with mocha, rspec and cucumber. A lot more can be suppor
 
 ## Installation
 
-Use [a plugin manager](https://github.com/VundleVim/Vundle.vim):
+Use [a plugin manager](https://github.com/junegunn/vim-plug):
 
 ```vim script
-Plugin 'artemave/vigun'
+Plug 'artemave/vigun'
 ```
 
 ## Usage
 
 Vigun comes with no bindings, but does add the following commands:
 
-**`:VigunRunTestFile`** - run all tests in a current file.
+**`:VigunRun 'all'`** - run all tests in a current file.
 
 <img src="https://user-images.githubusercontent.com/23721/27877373-432ad0e2-61b2-11e7-947e-6c563b2275a0.gif" width=500>
 
-**`:VigunRunNearestTest`** - run test under cursor.
+**`:VigunRun 'nearest'`** - run test under cursor.
 
 <img src="https://user-images.githubusercontent.com/23721/27878507-582bfee0-61b6-11e7-902d-ddcccd952b2a.gif" width=500>
 
-**`:VigunRunNearesTestDebug`** - start debug session for test under cursor. By default, for mocha, this will use `--inspect-brk` and copy the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
+**`:VigunRun 'debug-nearest'`** - start debug session for test under cursor. By default, for mocha, this will use `--inspect-brk` and copy the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
 
 **`:VigunShowSpecIndex`** - open quickfix window to quickly navigate between the tests.
 
@@ -44,54 +44,79 @@ Vigun comes with no bindings, but does add the following commands:
 ### Example bindings
 
 ```vim script
-au FileType {ruby,javascript,cucumber} nnoremap <leader>t :VigunRunTestFile<cr>
-au FileType {ruby,javascript,cucumber} nnoremap <leader>T :VigunRunNearestTest<cr>
-au FileType javascript nnoremap <leader>D :VigunRunNearestTestDebug<cr>
-au FileType javascript nnoremap <Leader>o :VigunMochaOnly<cr>
-au FileType {ruby,javascript} nnoremap <leader>i :VigunShowSpecIndex<cr>
+au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>t :VigunRun 'all'<cr>
+au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>T :VigunRun 'nearest'<cr>
+au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>d :VigunRun 'debug-nearest'<cr>
+au FileType {javascript,typescript,typescript} nnoremap <Leader>vo :VigunMochaOnly<cr>
+au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIndex<cr>
 ```
 
-## Custom test commands
+## Configuration
 
-The default commands are `mocha` for javascript, `rspec` for ruby and `cucumber` for cucumber. Those can be changed. For example if some of your tests are DOM tests, then you may want to use [electron-mocha](https://github.com/jprichardson/electron-mocha) and [cucumber-electron](https://github.com/cucumber/cucumber-electron) instead of mocha and cucumber. The following setting (best kept in [project vimrc](https://andrew.stwrt.ca/posts/project-specific-vimrc/)) will do the trick:
+### `g:vigun_mappings`
+
+Out of the box, vigun runs mocha, rspec and cucumber. You can add support for new frameworks or modify the default ones:
 
 ```vim script
-let g:vigun_commands = [
+let g:vigun_mappings = [
       \ {
-      \   'pattern': 'browser/.*Spec.js$',
-      \   'normal': 'electron-mocha --renderer',
-      \   'debug': 'electron-mocha --interactive --no-timeouts',
+      \   'pattern': 'Spec.js$',
+      \   'all': './node_modules/.bin/mocha #{file}',
+      \   'nearest': './node_modules/.bin/mocha --fgrep #{nearest_test} #{file}',
+      \   'debug-all': './node_modules/.bin/mocha --inspect-brk --no-timeouts #{file}',
+      \   'debug-nearest': './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
       \ },
       \ {
-      \   'pattern': 'test/.*Test.js$',
-      \   'normal': 'donc',
-      \   'debug': 'donc --inspect-brk',
-      \   'currentTestStrategy': 'line_number', " run current test will append current test line number at the end of the test command
+      \   'pattern': '_spec.rb$',
+      \   'all': 'rspec #{file}',
+      \   'nearest': 'rspec #{file}:#{line}',
       \ },
       \ {
       \   'pattern': '.feature$',
-      \   'normal': 'cucumber-electron',
-      \   'debug': 'cucumber-electron --electron-debug',
-      \ },
-      \ {
-      \   'pattern': 'Spec.js$',
-      \   'normal': 'mocha',
-      \   'debug': 'electron-mocha --interactive --no-timeouts',
-      \   'grep': '--fgrep ', " explicitely set option name for grepping out current test name
+      \   'all': 'cucumber #{file}',
+      \   'nearest': 'cucumber #{file}:#{line}',
       \ },
       \]
 ```
 
-Note that `pattern` is a regular expression (not glob). Also note that match order matters, so it should go from more specific to less specific.
+Each mapping has a `pattern` property that will be tested against the current file name. Note that `pattern` is a regular expression, not a glob. Also note that the match order matters - the block with the first matched `pattern` is selected to run tests - so it should go from more specific to less specific.
 
-
-By default lines that start with `it(`, `describe(`, `context(` are considered test boundaries. This can be extended:
+All other properties represent various ways to run tests. `#{file}`, `#{line}` and `#{nearest_test}` are interpolated based on the current cursor position. You can name them whatever you like and then invoke commands via `VigunRun 'your-key'`. For example, let's add watch commands:
 
 ```vim script
-let g:vigun_extra_keywords = ['feature', 'scenario', 'example']
+fun! s:watch(cmd)
+  return "rg --files | entr -r -d -c sh -c 'echo ".escape('"'.a:cmd.'"', '"')." && ".a:cmd."'"
+endf
+
+let g:vigun_mappings = [
+      \ {
+      \   'pattern': '_spec.rb$',
+      \   'all': 'rspec #{file}',
+      \   'nearest': 'rspec #{file}:#{line}',
+      \   'watch-all': s:watch('rspec #{file}'),
+      \   'watch-nearest': s:watch('rspec #{file}:#{line}'),
+      \ },
+      \]
+
+au FileType {ruby} nnoremap <leader>tw :VigunRun 'watch-all'<cr>
+au FileType {ruby} nnoremap <leader>Tw :VigunRun 'watch-nearest'<cr>
 ```
 
-Both of the above combined can be used to run a lot of different types of tests.
+Property names are arbitrary, however there is one name based feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely nothing.
+
+### `g:vigun_test_keywords`
+
+A line that starts with one of the following, is considered a start of the test and is used to work out `#{nearest_test}`:
+
+```vim script
+let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test']
+```
+
+Overwrie `g:vigun_test_keywords` to add new ones.
+
+### `g:vigun_tmux_window_name`
+
+Name of the tmux window where tests commands are sent. Defaults to `test`.
 
 ## Running Plugin Tests
 

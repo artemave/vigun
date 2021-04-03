@@ -1,6 +1,6 @@
-let g:vigun_commands = [
+let g:vigun_mappings = [
       \ {
       \   'pattern': 'test/.*.vader$',
-      \   'normal': './run_tests'
+      \   'all': './run_tests #{file}'
       \ }
       \]

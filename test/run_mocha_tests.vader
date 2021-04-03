@@ -1,7 +1,7 @@
 Before:
-  Save g:vigun_commands
+  Save g:vigun_mappings
 After:
-  Restore g:vigun_commands
+  Restore g:vigun_mappings
 
 Given javascript (js spec file):
   const {expect} = require('chai')
@@ -28,57 +28,81 @@ Given javascript (js spec file):
 
 Execute (default run all tests in a file):
   file testSpec.js
-  VigunRunTestFile
+  VigunRun 'all'
   AssertEqual "./node_modules/.bin/mocha testSpec.js", GetLastMessage()
 
 Execute (default run test under cursor):
   file testSpec.js
   normal 14j
-  VigunRunNearestTest
+  VigunRun 'nearest'
   AssertEqual './node_modules/.bin/mocha --fgrep \"does not do that\" testSpec.js', GetLastMessage()
 
 Execute (default debug test under cursor):
   file testSpec.js
   normal 14j
-  VigunRunNearestTestDebug
+  VigunRun 'debug-nearest'
   AssertEqual './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()
 
 Execute (test name has quotes inside quotes):
   file testSpec.js
   normal 19j
-  VigunRunNearestTest
+  VigunRun 'nearest'
   AssertEqual './node_modules/.bin/mocha --fgrep \"withstands \\\"quotes\\\" within quotes\" testSpec.js', GetLastMessage()
 
 Execute (with a different command):
   file browser/testSpec.js
-  let g:vigun_commands = [
+  let g:vigun_mappings = [
         \ {
         \   'pattern': 'browser/.*Spec.js$',
-        \   'normal': 'electron-mocha --renderer',
-        \   'debug': 'electron-mocha --interactive',
+        \   'all': 'electron-mocha --renderer #{file}',
+        \   'debug-all': 'electron-mocha --interactive #{file}',
+        \   'debug-nearest': 'electron-mocha --interactive --fgrep #{nearest_test} #{file}',
         \ },
         \ {
         \   'pattern': 'Spec.js$',
-        \   'normal': 'mocha',
-        \   'debug': 'mocha --inspect-brk --no-timeouts',
+        \   'all': 'mocha #{file}',
+        \   'debug-all': 'mocha --inspect-brk --no-timeouts #{file}',
+        \   'debug-nearest': 'mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
         \ },
         \]
 
-  VigunRunTestFile
+  VigunRun 'all'
   AssertEqual "electron-mocha --renderer browser/testSpec.js", GetLastMessage()
 
   normal 14j
-  VigunRunNearestTestDebug
+  VigunRun 'debug-nearest'
   AssertEqual 'electron-mocha --interactive --fgrep \"does not do that\" browser/testSpec.js', GetLastMessage()
 
   file testSpec.js
-  VigunRunTestFile
+  VigunRun 'all'
   AssertEqual "mocha testSpec.js", GetLastMessage()
 
-  VigunRunNearestTestDebug
+  VigunRun 'debug-nearest'
   AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()
 
 Execute (when there is no command for a file name):
   file blahStuff.js
-  AssertThrows VigunRunTestFile
-  AssertEqual g:vader_exception, "There is no command to run blahStuff.js. Please set one up in g:vigun_commands"
+  AssertThrows VigunRun 'all'
+  AssertEqual g:vader_exception, "There is no command to run blahStuff.js. Please set one up in g:vigun_mappings"
+
+Given javascript (.only test uses '*all' instead of '*nearest'):
+  const {expect} = require('chai')
+
+  describe('a thing', function() {
+    beforeEach(function() {
+      this.timeout = 200
+    })
+
+    it.only('withstands "quotes" within quotes', function() {
+      expect(true).to.eq(true)
+    })
+  })
+
+Execute:
+  file testSpec.js
+  normal 8j
+  VigunRun 'nearest'
+  AssertEqual "./node_modules/.bin/mocha testSpec.js", GetLastMessage()
+
+  VigunRun 'debug-nearest'
+  AssertEqual './node_modules/.bin/mocha --inspect-brk --no-timeouts testSpec.js', GetLastMessage()

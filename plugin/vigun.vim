@@ -15,10 +15,10 @@ function s:SendToTmux(command)
     return
   endif
 
-  call system('tmux select-window -t test || tmux new-window -n test')
+  call system('tmux select-window -t '.g:vigun_tmux_window_name.' || tmux new-window -n '.g:vigun_tmux_window_name)
 
   " only send C-c if something (e.g. entr) is running in the test window
-  let number_of_procs = system("ps -o comm= -t \"$(tmux list-panes -t test -F '#{pane_tty}')\" | wc -l")
+  let number_of_procs = system("ps -o comm= -t \"$(tmux list-panes -t ".g:vigun_tmux_window_name." -F '#{pane_tty}')\" | wc -l")
   if number_of_procs > 1
     call system('tmux send-keys C-c')
   endif
@@ -48,19 +48,7 @@ function s:CopyMochaDebugUrlToClipboard()
   endwhile
 endfunction
 
-function s:GetCurrentTestMethod(config)
-  if has_key(a:config, 'currentTestStrategy') == 1
-    return a:config.currentTestStrategy
-  endif
-
-  if &filetype =~ 'javascript'
-    return 'grep'
-  else
-    return 'line_number'
-  endif
-endfunction
-
-function s:RunTests(mode, ...)
+function s:RunTests(mode)
   let config = s:GetConfigForCurrentFile()
 
   if !exists("config")
@@ -69,47 +57,31 @@ function s:RunTests(mode, ...)
 
   wa
 
-  let is_debug = exists("a:1") && a:1 == 'debug'
+  let cmd = get(config, a:mode, config.all)
 
-  if is_debug
-    let cmd = get(config, 'debug', config.normal)
-  else
-    let cmd = config.normal
+  if (match(a:mode, 'nearest') > -1) && s:IsOnlySet()
+    let cmd = get(config, substitute(a:mode, 'nearest', 'all', ''), cmd)
   endif
 
-  if a:mode == 'current'
-    let current_test_method = s:GetCurrentTestMethod(config)
+  let cmd = s:RenderCmd(cmd)
 
-    if current_test_method == 'line_number'
-      let formatted_cmd = cmd .' '. expand('%').':'.line('.')
-    else
-      if s:IsOnlySet()
-        let formatted_cmd = cmd .' '. expand('%')
-      else
-        let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
-        let nearest_test_title = escape(s:TestTitle(nearest_test_line_number), '()?')
-        let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\"', 'g')
+  call s:SendToTmux(cmd)
 
-        let formatted_cmd = cmd . ' '. s:GetFgrepOption(config).'\"'.nearest_test_title.'\" ' . expand('%')
-      endif
-    endif
-  else
-    let formatted_cmd = cmd .' '. expand('%')
-  endif
-
-  call s:SendToTmux(formatted_cmd)
-
-  if is_debug && !exists('g:vigun_dry_run')
+  if (match(a:mode, 'debug') > -1) && !exists('g:vigun_dry_run')
     call s:CopyMochaDebugUrlToClipboard()
   endif
 endfunction
 
-fun s:GetFgrepOption(config)
-  let fgrep = '--fgrep '
-  if has_key(a:config, 'grep') == 1
-    let fgrep = a:config.grep
-  endif
-  return fgrep
+fun s:RenderCmd(cmd)
+  let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
+  let nearest_test_title = escape(s:TestTitle(nearest_test_line_number), '()?')
+  let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\\\\\\\"', 'g')
+
+  let result = substitute(a:cmd, '#{file}', expand('%'), 'g')
+  let result = substitute(result, '#{line}', line('.'), 'g')
+  let result = substitute(result, '#{nearest_test}', '\\\"'.nearest_test_title.'\\\"', '')
+
+  return result
 endf
 
 fun s:TestTitle(line_number)
@@ -120,7 +92,7 @@ function s:KeywordsRegexp(...)
   if a:0 && a:1 == 'context'
     let keywords = ['context', 'describe']
   else
-    let keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario'] + g:vigun_extra_keywords
+    let keywords = g:vigun_test_keywords
   endif
   let search = '^[ \t]*\<\('. join(keywords, '\|') .'\)\>'
   return search
@@ -167,12 +139,12 @@ function s:MochaOnly()
 endfunction
 
 function s:GetConfigForCurrentFile()
-  for cmd in g:vigun_commands
+  for cmd in g:vigun_mappings
     if match(expand("%"), '\v' . cmd.pattern) != -1
       return cmd
     endif
   endfor
-  throw "There is no command to run ".expand('%').". Please set one up in g:vigun_commands"
+  throw "There is no command to run ".expand('%').". Please set one up in g:vigun_mappings"
 endfunction
 
 function s:ShowSpecIndex()
@@ -245,32 +217,37 @@ fun s:CurrentTestBefore(...)
   endif
 endf
 
-if !exists('g:vigun_extra_keywords')
-  let g:vigun_extra_keywords = []
+if !exists('g:vigun_tmux_window_name')
+  let g:vigun_tmux_window_name = 'test'
 endif
 
-if !exists('g:vigun_commands')
-  let g:vigun_commands = [
+if !exists('g:vigun_test_keywords')
+  let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test']
+endif
+
+if !exists('g:vigun_mappings')
+  let g:vigun_mappings = [
         \ {
         \   'pattern': 'Spec.js$',
-        \   'normal': './node_modules/.bin/mocha',
-        \   'debug': './node_modules/.bin/mocha --inspect-brk --no-timeouts',
+        \   'all': './node_modules/.bin/mocha #{file}',
+        \   'nearest': './node_modules/.bin/mocha --fgrep #{nearest_test} #{file}',
+        \   'debug-all': './node_modules/.bin/mocha --inspect-brk --no-timeouts #{file}',
+        \   'debug-nearest': './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
         \ },
         \ {
         \   'pattern': '_spec.rb$',
-        \   'normal': 'rspec',
+        \   'all': 'rspec #{file}',
+        \   'nearest': 'rspec #{file}:#{line}',
         \ },
         \ {
         \   'pattern': '.feature$',
-        \   'normal': 'cucumber',
+        \   'all': 'cucumber #{file}',
+        \   'nearest': 'cucumber #{file}:#{line}',
         \ },
         \]
 endif
 
-com VigunRunTestFile call s:RunTests('all')|redraw!
-com VigunRunNearestTest call s:RunTests('current')|redraw!
-com VigunRunNearestTestDebug call s:RunTests('current', 'debug')|redraw!
-
+com -nargs=1 VigunRun call s:RunTests(<args>)
 com VigunShowSpecIndex call s:ShowSpecIndex()
-com VigunMochaOnly call s:MochaOnly()|redraw!
+com VigunMochaOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()
