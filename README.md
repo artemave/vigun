@@ -59,7 +59,7 @@ Toggle `.only` for a current test/context/describe.
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>t :VigunRun 'all'<cr>
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>T :VigunRun 'nearest'<cr>
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>d :VigunRun 'debug-nearest'<cr>
-au FileType {javascript,typescript,typescript} nnoremap <Leader>vo :VigunToggleOnly<cr>
+au FileType {javascript,typescript} nnoremap <Leader>vo :VigunToggleOnly<cr>
 au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIndex<cr>
 ```
 
