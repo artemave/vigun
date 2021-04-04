@@ -1,11 +1,11 @@
 # vigun [![CircleCI](https://circleci.com/gh/artemave/vigun.svg?style=svg)](https://circleci.com/gh/artemave/vigun)
-Unclutter your test diet
+Unclutter your test diet.
 
 ## What is this?
 
-Vim plugin to run tests in a separate tmux window.
+Vim plugin to run tests from vim, running in a tmux window, in a separate tmux window.
 
-Out of the box it works with mocha, rspec and cucumber. Other test frameworks can be supported through extensible configuration system.
+Out of the box it works with mocha, rspec and cucumber. Other test frameworks can be supported through some configuration.
 
 ## Installation
 
@@ -79,11 +79,12 @@ let g:vigun_mappings = [
       \]
 ```
 
-Each mapping has a `pattern` property that will be tested against the current file name. Note that `pattern` is a regular expression, not a glob. Also note that the match order matters - the block with the first matched `pattern` is selected to run tests - so it should go from more specific to less specific.
+Each mapping has a `pattern` property that will be tested against the current file name. Note that `pattern` is a regular expression, not a glob. Also note that the match order matters - the block with the first matched `pattern` is selected to run tests.
 
-All other properties represent various ways to run tests. `#{file}`, `#{line}` and `#{nearest_test}` are interpolated based on the current cursor position. You can name them whatever you like and then invoke commands via `VigunRun 'your-key'`. For example, let's add watch commands:
+All other properties represent various ways to run tests. All occurances of `#{file}`, `#{line}` and `#{nearest_test}` in the property value are interpolated based on the current cursor position. You can name the properties whatever you like and then invoke commands via `VigunRun 'your-key'`. For example, let's add watch commands:
 
 ```vim script
+" Note: requires ripgrep and entr
 fun! s:watch(cmd)
   return "rg --files | entr -r -d -c sh -c 'echo ".escape('"'.a:cmd.'"', '"')." && ".a:cmd."'"
 endf
@@ -102,7 +103,9 @@ au FileType {ruby} nnoremap <leader>tw :VigunRun 'watch-all'<cr>
 au FileType {ruby} nnoremap <leader>Tw :VigunRun 'watch-nearest'<cr>
 ```
 
-Property names are arbitrary, however there is one name based feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely nothing.
+#### Magic property names
+
+Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely nothing.
 
 ### `g:vigun_test_keywords`
 
@@ -112,7 +115,7 @@ A line that starts with one of the following, is considered a start of the test 
 let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test']
 ```
 
-Overwrie `g:vigun_test_keywords` to add new ones.
+Overwrie `g:vigun_test_keywords` to suit your needs.
 
 ### `g:vigun_tmux_window_name`
 
