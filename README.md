@@ -21,9 +21,9 @@ Vigun comes with no mappings, but it does add the following commands:
 
 #### VigunRun
 
-Run test(s). Requires an argument to specify which mode to run tests in. See [](#)
+Run test(s). Requires an argument that refers to one of the commands from [g:vigun_mappings](#gvigun_mappings).
 
-For example, out of the box, for mocha:
+For example, with default mappings, for mocha:
 
 `:VigunRun 'all'` runs all tests in a current file.
 
@@ -117,7 +117,7 @@ au FileType {ruby} nnoremap <leader>Tw :VigunRun 'watch-nearest'<cr>
 
 #### Magic property names
 
-Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely nothing.
+Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of .only). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely to be empty.
 
 ### g:vigun_test_keywords
 
