@@ -3,7 +3,7 @@ Unclutter your test diet.
 
 ## What is this?
 
-Vim plugin to run tests from vim, running in a tmux window, in a separate tmux window.
+Vim plugin to run tests from vim running in one tmux window in another tmux window.
 
 Out of the box it works with mocha, rspec and cucumber. Other test frameworks can be supported through some configuration.
 
@@ -19,25 +19,37 @@ Plug 'artemave/vigun'
 
 Vigun comes with no bindings, but does add the following commands:
 
-**`:VigunRun 'all'`** - run all tests in a current file.
+#### VigunRun
+
+Run test(s). Requires an argument to specify which mode to run tests in. See [](#)
+
+For example, out of the box, for mocha:
+
+`:VigunRun 'all'` runs all tests in a current file.
 
 <img src="https://user-images.githubusercontent.com/23721/27877373-432ad0e2-61b2-11e7-947e-6c563b2275a0.gif" width=500>
 
-**`:VigunRun 'nearest'`** - run test under cursor.
+`:VigunRun 'nearest'` runs test under cursor.
 
 <img src="https://user-images.githubusercontent.com/23721/27878507-582bfee0-61b6-11e7-902d-ddcccd952b2a.gif" width=500>
 
-**`:VigunRun 'debug-nearest'`** - start debug session for test under cursor. By default, for mocha, this will use `--inspect-brk` and copy the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
+`:VigunRun 'debug-nearest'` starts debug session for test under cursor. By default, for mocha, this will use `--inspect-brk` and copy the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
 
-**`:VigunShowSpecIndex`** - open quickfix window to quickly navigate between the tests.
+#### VigunShowSpecIndex
+
+Open quickfix window to quickly navigate between the tests.
 
 <img src="https://user-images.githubusercontent.com/23721/27877502-ce1cbde6-61b2-11e7-93f6-3115dc339266.gif" width=500>
 
-**`:VigunCurrentTestBefore`** - fold everything, except current test and all relevant setup code (e.g. before/beforeEach blocks).
+#### VigunCurrentTestBefore
+
+Fold everything, except current test and all relevant setup code (e.g. before/beforeEach blocks).
 
 <img src="https://user-images.githubusercontent.com/23721/27878467-405c959a-61b6-11e7-9048-96f8d5e43011.gif" width=500>
 
-**`:VigunMochaOnly`** - toggle `.only` for a current test/context/describe.
+#### VigunMochaOnly
+
+Toggle `.only` for a current test/context/describe.
 
 <img src="https://user-images.githubusercontent.com/23721/27878536-7ba3e8c4-61b6-11e7-9254-c0f4bb569f68.gif" width=500>
 
@@ -53,7 +65,7 @@ au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIn
 
 ## Configuration
 
-### `g:vigun_mappings`
+### g:vigun_mappings
 
 Out of the box, vigun runs mocha, rspec and cucumber. You can add support for new frameworks or modify the default ones:
 
@@ -107,7 +119,7 @@ au FileType {ruby} nnoremap <leader>Tw :VigunRun 'watch-nearest'<cr>
 
 Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely nothing.
 
-### `g:vigun_test_keywords`
+### g:vigun_test_keywords
 
 A line that starts with one of the following, is considered a start of the test and is used to work out `#{nearest_test}`:
 
@@ -117,7 +129,7 @@ let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[F
 
 Overwrie `g:vigun_test_keywords` to suit your needs.
 
-### `g:vigun_tmux_window_name`
+### g:vigun_tmux_window_name
 
 Name of the tmux window where tests commands are sent. Defaults to `test`.
 
