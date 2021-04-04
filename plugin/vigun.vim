@@ -30,7 +30,7 @@ function s:CopyMochaDebugUrlToClipboard()
   let debug_url = ''
   let retry_count = 0
 
-  while retry_count < 50
+  while retry_count < 20
     call system('tmux capture-pane -J -b mocha-debug')
     call system('tmux save-buffer -b mocha-debug /tmp/vim-mocha-debug')
 
@@ -43,7 +43,7 @@ function s:CopyMochaDebugUrlToClipboard()
       return
     endif
 
-    sleep 20m
+    sleep 50m
     let retry_count += 1
   endwhile
 endfunction
@@ -67,7 +67,7 @@ function s:RunTests(mode)
 
   call s:SendToTmux(cmd)
 
-  if (match(a:mode, 'debug') > -1) && !exists('g:vigun_dry_run')
+  if !exists('g:vigun_dry_run')
     call s:CopyMochaDebugUrlToClipboard()
   endif
 endfunction
@@ -249,5 +249,5 @@ endif
 
 com -nargs=1 VigunRun call s:RunTests(<args>)
 com VigunShowSpecIndex call s:ShowSpecIndex()
-com VigunMochaOnly call s:MochaOnly()
+com VigunToggleOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()

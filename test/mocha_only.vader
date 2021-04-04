@@ -26,14 +26,14 @@ Given javascript (js spec file):
 
 Execute (toggles `.only` for current test):
   :15
-  VigunMochaOnly
+  VigunToggleOnly
   Assert match(getline(14), '\.only'), "Expected `.only` on current test"
-  VigunMochaOnly
+  VigunToggleOnly
   Assert match(getline(14), '\.only') == -1, "Expected `.only` on current test"
 
 Execute (removes `.only` first if it is already present elsewhere in the file):
   :15
-  VigunMochaOnly
+  VigunToggleOnly
   :4
-  VigunMochaOnly
+  VigunToggleOnly
   AssertEqual GetMatchCount('\.only'), 1

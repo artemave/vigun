@@ -47,7 +47,7 @@ Fold everything, except current test and all relevant setup code (e.g. before/be
 
 <img src="https://user-images.githubusercontent.com/23721/27878467-405c959a-61b6-11e7-9048-96f8d5e43011.gif" width=500>
 
-#### VigunMochaOnly
+#### VigunToggleOnly
 
 Toggle `.only` for a current test/context/describe.
 
@@ -59,7 +59,7 @@ Toggle `.only` for a current test/context/describe.
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>t :VigunRun 'all'<cr>
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>T :VigunRun 'nearest'<cr>
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>d :VigunRun 'debug-nearest'<cr>
-au FileType {javascript,typescript,typescript} nnoremap <Leader>vo :VigunMochaOnly<cr>
+au FileType {javascript,typescript,typescript} nnoremap <Leader>vo :VigunToggleOnly<cr>
 au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIndex<cr>
 ```
 
