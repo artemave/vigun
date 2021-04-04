@@ -3,7 +3,7 @@ Unclutter your test diet.
 
 ## What is this?
 
-Vim plugin to run tests from vim running in one tmux window in another tmux window.
+Vim plugin to run tests in a separate tmux window.
 
 Out of the box it works with mocha, rspec and cucumber. Other test frameworks can be supported through some configuration.
 
@@ -17,7 +17,7 @@ Plug 'artemave/vigun'
 
 ## Usage
 
-Vigun comes with no bindings, but does add the following commands:
+Vigun comes with no mappings, but it does add the following commands:
 
 #### VigunRun
 
