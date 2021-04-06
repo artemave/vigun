@@ -30,12 +30,12 @@ function s:CopyMochaDebugUrlToClipboard()
   let debug_url = ''
   let retry_count = 0
 
-  while retry_count < 20
-    call system('tmux capture-pane -J -b mocha-debug')
-    call system('tmux save-buffer -b mocha-debug /tmp/vim-mocha-debug')
+  while retry_count < 10
+    call system('tmux capture-pane -J -b vigun-node-inspector-debug')
+    call system('tmux save-buffer -b vigun-node-inspector-debug /tmp/vigun-node-inspector-debug')
 
-    let debug_url=system("grep chrome-devtools /tmp/vim-mocha-debug | tail -n 1 | sed -e 's/ *//'")
-    let last_buffer_line=system("cat /tmp/vim-mocha-debug | grep -v -e '^$' | tail -n 1")
+    let debug_url=system("grep chrome-devtools /tmp/vigun-node-inspector-debug | tail -n 1 | sed -e 's/ *//'")
+    let last_buffer_line=system("cat /tmp/vigun-node-inspector-debug | grep -v -e '^$' | tail -n 1")
 
     if debug_url != "" && last_buffer_line =~ debug_url
       let @*=debug_url " copy to osx clipboard
@@ -43,7 +43,7 @@ function s:CopyMochaDebugUrlToClipboard()
       return
     endif
 
-    sleep 50m
+    sleep 100m
     let retry_count += 1
   endwhile
 endfunction
