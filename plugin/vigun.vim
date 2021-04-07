@@ -75,21 +75,25 @@ endfunction
 function s:RunTests(mode)
   let config = s:GetConfigForCurrentFile()
 
-  if !exists("config")
-    return
+  if !empty(config)
+    wa
+    let cmd = get(config, a:mode, config.all)
+
+    if (match(a:mode, 'nearest') > -1) && s:IsOnlySet()
+      let cmd = get(config, substitute(a:mode, 'nearest', 'all', ''), cmd)
+    endif
+
+    let cmd = s:RenderCmd(cmd)
+  else
+    if exists('s:last_command')
+      let cmd = s:last_command
+    else
+      throw "There is no command to run ".expand('%').". Please set one up in g:vigun_mappings"
+    endif
   endif
-
-  wa
-
-  let cmd = get(config, a:mode, config.all)
-
-  if (match(a:mode, 'nearest') > -1) && s:IsOnlySet()
-    let cmd = get(config, substitute(a:mode, 'nearest', 'all', ''), cmd)
-  endif
-
-  let cmd = s:RenderCmd(cmd)
 
   call s:SendToTmux(cmd)
+  let s:last_command = cmd
 
   if !exists('g:vigun_dry_run')
     call s:CopyMochaDebugUrlToClipboard()
@@ -168,7 +172,6 @@ function s:GetConfigForCurrentFile()
       return cmd
     endif
   endfor
-  throw "There is no command to run ".expand('%').". Please set one up in g:vigun_mappings"
 endfunction
 
 function s:ShowSpecIndex()

@@ -26,6 +26,11 @@ Given javascript (js spec file):
     })
   })
 
+Execute (when there is no command for a file name):
+  file blahStuff.js
+  AssertThrows VigunRun 'all'
+  AssertEqual g:vader_exception, "There is no command to run blahStuff.js. Please set one up in g:vigun_mappings"
+
 Execute (default run all tests in a file):
   file testSpec.js
   VigunRun 'all'
@@ -79,11 +84,6 @@ Execute (with a different command):
 
   VigunRun 'debug-nearest'
   AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"does not do that\" testSpec.js', GetLastMessage()
-
-Execute (when there is no command for a file name):
-  file blahStuff.js
-  AssertThrows VigunRun 'all'
-  AssertEqual g:vader_exception, "There is no command to run blahStuff.js. Please set one up in g:vigun_mappings"
 
 Given javascript (.only test uses '*all' instead of '*nearest'):
   const {expect} = require('chai')

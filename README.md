@@ -35,6 +35,8 @@ For example, with default mappings, for mocha:
 
 `:VigunRun 'debug-nearest'` starts debug session for test under cursor. By default, for mocha, this will use `--inspect-brk` and copy the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
 
+If invoked from a non-test file, `VigunRun` (with any argument) will attempt to run the last command.
+
 #### VigunToggleTestWindowToPane
 
 Move tmux test window into a pane of the current vim window. And vice versa.

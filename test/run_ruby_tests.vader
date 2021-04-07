@@ -23,3 +23,12 @@ Execute (run test under cursor):
   normal 9j
   VigunRun 'nearest'
   AssertEqual 'rspec test_spec.rb:10', GetLastMessage()
+
+Execute (if not in test file, runs last test):
+  file test_spec.rb
+  normal 9j
+  VigunRun 'nearest'
+
+  file thing.rb
+  VigunRun 'all'
+  AssertEqual 'rspec test_spec.rb:10', GetLastMessage()
