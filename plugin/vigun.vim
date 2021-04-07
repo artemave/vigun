@@ -9,19 +9,43 @@ fun s:Debug(message)
   endif
 endf
 
+fun! s:EnsureTestWindow()
+  if exists('s:tmux_pane_id')
+    call system('tmux list-panes -t '.s:tmux_pane_id)
+    if v:shell_error == 0
+      return
+    endif
+  endif
+
+  call system("tmux list-windows -F '#{window_name}' | grep -w ".g:vigun_tmux_window_name)
+  if v:shell_error
+    call system('tmux new-window -d -n '.g:vigun_tmux_window_name)
+  endif
+  let s:tmux_pane_id = system("tmux list-panes -F '#{pane_id}' -t ".g:vigun_tmux_window_name)
+endf
+
 function s:SendToTmux(command)
   if exists("g:vigun_dry_run")
     echom a:command
     return
   endif
 
-  call system('tmux select-window -t '.g:vigun_tmux_window_name.' || tmux new-window -n '.g:vigun_tmux_window_name)
+  call s:EnsureTestWindow()
+
+  call system('tmux select-window -t '.g:vigun_tmux_window_name)
+  if v:shell_error
+    call system('tmux select-pane -t '.s:tmux_pane_id)
+    let target = s:tmux_pane_id
+  else
+    let target = g:vigun_tmux_window_name
+  endif
 
   " only send C-c if something (e.g. entr) is running in the test window
-  let number_of_procs = system("ps -o comm= -t \"$(tmux list-panes -t ".g:vigun_tmux_window_name." -F '#{pane_tty}')\" | wc -l")
+  let number_of_procs = system("ps -o comm= -t \"$(tmux list-panes -t ".target." -F '#{pane_tty}')\" | wc -l")
   if number_of_procs > 1
     call system('tmux send-keys C-c')
   endif
+
   call system('tmux send-keys "'. a:command .'" Enter')
 endfunction
 
@@ -217,6 +241,13 @@ fun s:CurrentTestBefore(...)
   endif
 endf
 
+fun! s:ToggleTestWindowToPane()
+  call system('tmux join-pane -d -h -p 30 -s '.g:vigun_tmux_window_name)
+  if v:shell_error && exists('s:tmux_pane_id')
+    call system('tmux break-pane -d -n '.g:vigun_tmux_window_name.' -s '.s:tmux_pane_id)
+  endif
+endf
+
 if !exists('g:vigun_tmux_window_name')
   let g:vigun_tmux_window_name = 'test'
 endif
@@ -251,3 +282,4 @@ com -nargs=1 VigunRun call s:RunTests(<args>)
 com VigunShowSpecIndex call s:ShowSpecIndex()
 com VigunToggleOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()
+com VigunToggleTestWindowToPane call s:ToggleTestWindowToPane()
