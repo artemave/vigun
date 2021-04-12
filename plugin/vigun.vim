@@ -41,7 +41,7 @@ function s:SendToTmux(command)
   endif
 
   " only send C-c if something (e.g. entr) is running in the test window
-  let number_of_procs = system("ps -o comm= -t \"$(tmux list-panes -t ".target." -F '#{pane_tty}')\" | wc -l")
+  let number_of_procs = system("ps -o comm= -t \"$(tmux run 'echo #{pane_tty}')\" | wc -l")
   if number_of_procs > 1
     call system('tmux send-keys C-c')
   endif
@@ -286,3 +286,9 @@ com VigunShowSpecIndex call s:ShowSpecIndex()
 com VigunToggleOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()
 com VigunToggleTestWindowToPane call s:ToggleTestWindowToPane()
+
+" Watch mode. Whenever file changes:
+" - if there is only shell in test pane - send last test command
+" - if something ls running in test pane - send Ctrl-c and then (once there is
+"   nothing running) send last test command
+" - if something is running interactively (expecting user input) - do nothing
