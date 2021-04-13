@@ -33,7 +33,8 @@ function s:SendToTmux(command)
   call s:EnsureTestWindow()
 
   call system('tmux select-window -t '.g:vigun_tmux_window_name)
-  if v:shell_error
+  if v:shell_error " -> test pane is in the same window as vim
+    let vim_pane_id = system("tmux run 'echo -n #{pane_id}'")
     call system('tmux select-pane -t '.s:tmux_pane_id)
     let target = s:tmux_pane_id
   else
@@ -41,12 +42,17 @@ function s:SendToTmux(command)
   endif
 
   " only send C-c if something (e.g. entr) is running in the test window
-  let number_of_procs = system("ps -o comm= -t \"$(tmux run 'echo #{pane_tty}')\" | wc -l")
+  let number_of_procs = system("ps -o comm= -t \"$(tmux run 'echo -n #{pane_tty}')\" | wc -l")
   if number_of_procs > 1
     call system('tmux send-keys C-c')
   endif
 
   call system('tmux send-keys "'. a:command .'" Enter')
+
+  " focus back to vim pane if test pane is in the same window
+  if exists('vim_pane_id')
+    call system('tmux select-pane -t '.vim_pane_id)
+  endif
 endfunction
 
 " This will gracefully do nothing for any command other than `mocha --inspect-brk`
@@ -245,11 +251,21 @@ fun s:CurrentTestBefore(...)
 endf
 
 fun! s:ToggleTestWindowToPane()
-  call system('tmux join-pane -d -h -p 30 -s '.g:vigun_tmux_window_name)
+  if g:vigun_tmux_pane_orientation == 'horizontal'
+    let orientation = '-v'
+  else
+    let orientation = '-h'
+  endif
+
+  call system('tmux join-pane -d '.orientation.' -p 30 -s '.g:vigun_tmux_window_name)
   if v:shell_error && exists('s:tmux_pane_id')
     call system('tmux break-pane -d -n '.g:vigun_tmux_window_name.' -s '.s:tmux_pane_id)
   endif
 endf
+
+if !exists('g:vigun_tmux_pane_orientation')
+  let g:vigun_tmux_pane_orientation = 'vertical'
+endif
 
 if !exists('g:vigun_tmux_window_name')
   let g:vigun_tmux_window_name = 'test'

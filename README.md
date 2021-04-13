@@ -139,6 +139,10 @@ Overwrie `g:vigun_test_keywords` to suit your needs.
 
 Name of the tmux window where tests commands are sent. Defaults to `test`.
 
+### g:vigun_tmux_pane_orientation
+
+Be default, `VigunToggleTestWindowToPane` moves test window in a vertical split to the right of the vim pane. Setting `g:vigun_tmux_pane_orientation = 'horizontal'` will change this to horizontal split at the bottom.
+
 ## Running Plugin Tests
 
 ```
