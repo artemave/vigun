@@ -117,8 +117,8 @@ let g:vigun_mappings = [
       \ },
       \]
 
-au FileType {ruby} nnoremap <leader>tw :VigunRun 'watch-all'<cr>
-au FileType {ruby} nnoremap <leader>Tw :VigunRun 'watch-nearest'<cr>
+au FileType {ruby} nnoremap <leader>wt :VigunRun 'watch-all'<cr>
+au FileType {ruby} nnoremap <leader>wT :VigunRun 'watch-nearest'<cr>
 ```
 
 #### Magic property names
