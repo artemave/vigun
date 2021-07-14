@@ -119,7 +119,15 @@ fun s:RenderCmd(cmd)
 endf
 
 fun s:TestTitle(line_number)
-  return matchstr(getline(a:line_number), "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$")
+  let line = getline(a:line_number)
+  let test_title = matchstr(line, "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$")
+  " if test name is not a string (e.g. mocha, rspec),
+  " try method name instead (e.g. pytest)
+  if test_title == ''
+    let method_declaration = matchstr(line, s:KeywordsRegexp())
+    let test_title = matchstr(method_declaration, '\w\+$')
+  endif
+  return test_title
 endf
 
 function s:KeywordsRegexp(...)
@@ -272,7 +280,7 @@ if !exists('g:vigun_tmux_window_name')
 endif
 
 if !exists('g:vigun_test_keywords')
-  let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test']
+  let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test', 'def test_\w\+']
 endif
 
 if !exists('g:vigun_mappings')
@@ -283,6 +291,13 @@ if !exists('g:vigun_mappings')
         \   'nearest': './node_modules/.bin/mocha --fgrep #{nearest_test} #{file}',
         \   'debug-all': './node_modules/.bin/mocha --inspect-brk --no-timeouts #{file}',
         \   'debug-nearest': './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
+        \ },
+        \ {
+        \   'pattern': '_test.py$',
+        \   'all': 'pytest -s #{file}',
+        \   'nearest': 'pytest -k #{nearest_test} -s #{file}',
+        \   'debug-all': 'pytest -vv -s #{file}',
+        \   'debug-nearest': 'pytest -vv -k #{nearest_test} -s #{file}',
         \ },
         \ {
         \   'pattern': '_spec.rb$',

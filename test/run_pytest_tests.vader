@@ -1,0 +1,13 @@
+Given python (pytest test file):
+  import pytest
+
+  def test_skips_duplicate_marks():
+      a = 2
+      assert(True)
+
+Execute (run test under cursor):
+  file pytest_test.py
+  normal 4j
+  VigunRun 'nearest'
+  call LogAllMessages()
+  AssertEqual 'pytest -k \"test_skips_duplicate_marks\" -s pytest_test.py', GetLastMessage()
