@@ -33,19 +33,13 @@ function s:SendToTmux(command)
   call s:EnsureTestWindow()
 
   call system('tmux select-window -t '.g:vigun_tmux_window_name)
-  if v:shell_error " -> test pane is in the same window as vim
-    let vim_pane_id = system("tmux run 'echo -n #{pane_id}'")
+  if v:shell_error " -> we can't select test window because there isn't any since it's been moved to a pane next to vim
+    let vim_pane_id = system("echo -n $TMUX_PANE")
     call system('tmux select-pane -t '.s:tmux_pane_id)
-    let target = s:tmux_pane_id
-  else
-    let target = g:vigun_tmux_window_name
   endif
 
-  " only send C-c if something (e.g. entr) is running in the test window
-  let number_of_procs = system("ps -o comm= -t \"$(tmux run 'echo -n #{pane_tty}')\" | wc -l")
-  if number_of_procs > 1
-    call system('tmux send-keys C-c')
-  endif
+  " send C-c in case something (e.g. entr) is running in the test window
+  call system('tmux send-keys C-c')
 
   call system('tmux send-keys "'. a:command .'" Enter')
 
