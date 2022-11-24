@@ -146,6 +146,5 @@ Be default, `VigunToggleTestWindowToPane` moves test window in a vertical split 
 ## Running Plugin Tests
 
 ```
-git clone https://github.com/junegunn/vader.vim.git
 ./run_tests
 ```
