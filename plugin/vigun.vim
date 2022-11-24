@@ -203,15 +203,28 @@ function s:ShowSpecIndex()
 endfunction
 
 fun s:CurrentTestBefore(...)
-  if a:0
-    let nearest_test_start = a:1
-    let nearest_test_end = a:2
+  let starting_pos = getpos('.')
+  call cursor(starting_pos[0], 1000)
+  normal zE
+
+  fun! s:FoldAllButCurrentTestContext(next_test_start, next_test_end)
+    execute a:next_test_start.",".a:next_test_end.' fold'
+    normal zC
+  endf
+
+  call s:ForEachParentContext(funcref('s:FoldAllButCurrentTestContext'))
+
+  call setpos('.', starting_pos)
+endf
+
+fun s:ForEachParentContext(...)
+  let Callback = a:1
+
+  if a:0 > 1
+    let nearest_test_start = a:2
+    let nearest_test_end = a:3
     call cursor(nearest_test_start, 1)
   else
-    let starting_pos = getpos('.')
-    call cursor(starting_pos[0], 1000)
-    normal zE
-
     let nearest_test_start = search(s:KeywordsRegexp().'(', 'bWe')
     let nearest_test_end = searchpair('(', '', ')')
   endif
@@ -238,17 +251,12 @@ fun s:CurrentTestBefore(...)
       if next_test_start < nearest_test_start || next_test_start > nearest_test_end
         let next_test_end = searchpair('(', '', ')')
         call s:Debug("next_test_end: ".next_test_end)
-        execute next_test_start.",".next_test_end.' fold'
-        normal zC
+        call Callback(next_test_start, next_test_end)
       endif
       let next_test_start = search(s:KeywordsRegexp().'(', 'eW')
     endwhile
 
-    call s:CurrentTestBefore(context_start, context_end)
-  endif
-
-  if !a:0
-    call setpos('.', starting_pos)
+    call s:ForEachParentContext(Callback, context_start, context_end)
   endif
 endf
 
@@ -311,9 +319,3 @@ com VigunShowSpecIndex call s:ShowSpecIndex()
 com VigunToggleOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()
 com VigunToggleTestWindowToPane call s:ToggleTestWindowToPane()
-
-" Watch mode. Whenever file changes:
-" - if there is only shell in test pane - send last test command
-" - if something ls running in test pane - send Ctrl-c and then (once there is
-"   nothing running) send last test command
-" - if something is running interactively (expecting user input) - do nothing
