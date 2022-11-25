@@ -102,7 +102,7 @@ endfunction
 
 fun s:RenderCmd(cmd)
   let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
-  let nearest_test_title = escape(s:TestTitle(nearest_test_line_number), '()?')
+  let nearest_test_title = escape(s:TestTitleWithContext(nearest_test_line_number), '()?')
   let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\\\\\\\"', 'g')
 
   let result = substitute(a:cmd, '#{file}', expand('%'), 'g')
@@ -110,6 +110,42 @@ fun s:RenderCmd(cmd)
   let result = substitute(result, '#{nearest_test}', '\\\"'.nearest_test_title.'\\\"', '')
 
   return result
+endf
+
+fun s:TestTitleWithContext(test_line_number)
+  let test_title = s:TestTitle(a:test_line_number)
+
+  let starting_pos = getpos('.')
+  call cursor(starting_pos[0], 1000)
+
+  let context_titles = s:TestContextStartLines(a:test_line_number)->reverse()->map('s:TestTitle(v:val)')->join(' ')
+
+  call setpos('.', starting_pos)
+
+  if len(context_titles)
+    return context_titles.' '.test_title
+  else
+    return test_title
+  endif
+endf
+
+fun s:TestContextStartLines(test_line_number, context_start = 0, result = [])
+  if a:context_start > 0
+    call cursor(a:context_start, 0)
+  endif
+
+  let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
+  let context_end = searchpair('(', '', ')', 'n')
+
+  if context_start && context_start > 1
+    if context_start <= a:test_line_number && context_end >= a:test_line_number
+      call add(a:result, context_start)
+    endif
+
+    return s:TestContextStartLines(context_start, context_start, a:result)
+  endif
+
+  return a:result
 endf
 
 fun s:TestTitle(line_number)
@@ -207,17 +243,17 @@ fun s:CurrentTestBefore(...)
   call cursor(starting_pos[0], 1000)
   normal zE
 
-  fun! s:FoldAllButCurrentTestContext(next_test_start, next_test_end)
+  fun! s:FoldBlock(next_test_start, next_test_end)
     execute a:next_test_start.",".a:next_test_end.' fold'
     normal zC
   endf
 
-  call s:ForEachParentContext(funcref('s:FoldAllButCurrentTestContext'))
+  call s:ForEachNonParentBlock(funcref('s:FoldBlock'))
 
   call setpos('.', starting_pos)
 endf
 
-fun s:ForEachParentContext(...)
+fun s:ForEachNonParentBlock(...)
   let Callback = a:1
 
   if a:0 > 1
@@ -256,7 +292,7 @@ fun s:ForEachParentContext(...)
       let next_test_start = search(s:KeywordsRegexp().'(', 'eW')
     endwhile
 
-    call s:ForEachParentContext(Callback, context_start, context_end)
+    call s:ForEachNonParentBlock(Callback, context_start, context_end)
   endif
 endf
 
