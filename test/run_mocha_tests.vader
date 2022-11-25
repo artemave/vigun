@@ -16,7 +16,7 @@ Given javascript (js spec file):
       expect(a).to.eq(2)
     })
 
-    it('does not do that', function() {
+    it ('does not do that', function() {
       const a = 2
       expect(a).to.eq(2)
     })

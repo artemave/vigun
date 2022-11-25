@@ -101,7 +101,7 @@ function s:RunTests(mode)
 endfunction
 
 fun s:RenderCmd(cmd)
-  let nearest_test_line_number = search(s:KeywordsRegexp().'(', 'bn')
+  let nearest_test_line_number = search(s:KeywordsRegexp().' *(', 'bn')
   let nearest_test_title = escape(s:TestTitleWithContext(nearest_test_line_number), '()?')
   let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\\\\\\\"', 'g')
 
@@ -130,7 +130,7 @@ fun s:TestTitleWithContext(test_line_number)
 endf
 
 fun s:TestContextStartLines(test_line_number, result = [])
-  let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
+  let context_start = search(s:KeywordsRegexp('context').' *(', 'bWe')
   let context_end = searchpair('(', '', ')', 'n')
 
   if context_start && context_start > 1
@@ -261,27 +261,27 @@ fun s:ForEachNonParentBlock(...)
     let nearest_test_end = a:3
     call cursor(nearest_test_start, 1)
   else
-    let nearest_test_start = search(s:KeywordsRegexp().'(', 'bWe')
+    let nearest_test_start = search(s:KeywordsRegexp().' *(', 'bWe')
     let nearest_test_end = searchpair('(', '', ')')
   endif
   call s:Debug("nearest_test_start: ".nearest_test_start)
   call s:Debug("nearest_test_end: ".nearest_test_end)
 
   if nearest_test_start && nearest_test_end
-    let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
+    let context_start = search(s:KeywordsRegexp('context').' *(', 'bWe')
     call s:Debug("context_start: ".context_start)
     let context_end = searchpair('(', '', ')', 'n')
     call s:Debug("context_end: ".context_end)
 
     while context_end && context_end < nearest_test_start
       call cursor(context_start, 1)
-      let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
+      let context_start = search(s:KeywordsRegexp('context').' *(', 'bWe')
       call s:Debug("context_start: ".context_start)
       let context_end = searchpair('(', '', ')', 'n')
       call s:Debug("context_end: ".context_end)
     endwhile
 
-    let next_test_start = search(s:KeywordsRegexp().'(', 'e')
+    let next_test_start = search(s:KeywordsRegexp().' *(', 'e')
     while next_test_start && next_test_start < context_end
       call s:Debug("next_test_start: ".next_test_start)
       if next_test_start < nearest_test_start || next_test_start > nearest_test_end
@@ -289,7 +289,7 @@ fun s:ForEachNonParentBlock(...)
         call s:Debug("next_test_end: ".next_test_end)
         call Callback(next_test_start, next_test_end)
       endif
-      let next_test_start = search(s:KeywordsRegexp().'(', 'eW')
+      let next_test_start = search(s:KeywordsRegexp().' *(', 'eW')
     endwhile
 
     call s:ForEachNonParentBlock(Callback, context_start, context_end)
