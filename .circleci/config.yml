@@ -6,6 +6,7 @@ jobs:
     docker:
       - image: 'cimg/base:stable'
     steps:
+      - checkout
       - run: sudo apt-get update
       - run: sudo apt-get install --yes git vim
       - run: sudo curl -LO https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
