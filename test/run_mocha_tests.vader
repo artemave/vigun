@@ -44,6 +44,12 @@ Given javascript (js spec file):
         expect(true).to.eq(true)
       })
     })
+
+    it(
+      'handles test title on separate line', () => {
+        expect(true).to.eq(true)
+      }
+    )
   })
 
 Execute (when there is no command for a file name):
@@ -107,11 +113,17 @@ Execute (with a different command):
 
 Execute (traverses up the tree of contexts):
   file testSpec.js
-  normal 44j
+  normal 38j
   VigunRun 'nearest'
   AssertEqual './node_modules/.bin/mocha --fgrep \"a thing when a thing is false does not do that\" testSpec.js', GetLastMessage()
 
-Given javascript (.only test uses '*all' instead of '*nearest'):
+Execute (handles test title on separate line):
+  file testSpec.js
+  normal 44j
+  VigunRun 'nearest'
+  AssertEqual './node_modules/.bin/mocha --fgrep \"a thing handles test title on separate line\" testSpec.js', GetLastMessage()
+
+Given javascript (.only test):
   const {expect} = require('chai')
 
   describe('a thing', function() {
@@ -124,7 +136,7 @@ Given javascript (.only test uses '*all' instead of '*nearest'):
     })
   })
 
-Execute:
+Execute (.only uses all instead of nearest):
   file testSpec.js
   normal 8j
   VigunRun 'nearest'

@@ -129,11 +129,7 @@ fun s:TestTitleWithContext(test_line_number)
   endif
 endf
 
-fun s:TestContextStartLines(test_line_number, context_start = 0, result = [])
-  if a:context_start > 0
-    call cursor(a:context_start, 0)
-  endif
-
+fun s:TestContextStartLines(test_line_number, result = [])
   let context_start = search(s:KeywordsRegexp('context').'(', 'bWe')
   let context_end = searchpair('(', '', ')', 'n')
 
@@ -142,7 +138,7 @@ fun s:TestContextStartLines(test_line_number, context_start = 0, result = [])
       call add(a:result, context_start)
     endif
 
-    return s:TestContextStartLines(context_start, context_start, a:result)
+    return s:TestContextStartLines(context_start, a:result)
   endif
 
   return a:result
@@ -150,6 +146,10 @@ endf
 
 fun s:TestTitle(line_number)
   let line = getline(a:line_number)
+  if line =~ s:KeywordsRegexp().' *($'
+    let line = getline(a:line_number + 1)
+  endif
+
   let test_title = matchstr(line, "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$")
   " if test name is not a string (e.g. mocha, rspec),
   " try method name instead (e.g. pytest)
