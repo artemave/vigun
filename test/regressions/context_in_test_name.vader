@@ -1,0 +1,25 @@
+Given javascript:
+  const {expect} = require('chai')
+
+  describe('thing', function() {
+    context('when banana', () => {
+      context('is fresh', function() {
+        it('works', function() {
+          assert(true)
+        })
+      })
+    })
+
+    context('when balls', function() {
+      it('is broken', function() {
+        assert(true)
+      })
+    })
+  })
+
+Execute (test name contains context):
+  file testSpec.js
+  /broken
+  j
+  VigunRun 'nearest'
+  AssertEqual './node_modules/.bin/mocha --fgrep \"thing when balls is broken\" testSpec.js', GetLastMessage()

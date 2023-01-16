@@ -139,7 +139,7 @@ fun s:TestContextStartLines(test_line_number, result = [])
       call add(a:result, context_start)
     endif
 
-    return s:TestContextStartLines(context_start, a:result)
+    return s:TestContextStartLines(a:test_line_number, a:result)
   endif
 
   return a:result
