@@ -1,7 +1,9 @@
 Before:
   Save g:vigun_mappings
+  let g:vigun_remember_last_command = 0
 After:
   Restore g:vigun_mappings
+  let g:vigun_remember_last_command = 1
 
 Given javascript (js spec file):
   const {expect} = require('chai')

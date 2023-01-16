@@ -2,6 +2,7 @@ if exists("g:vigun_loaded")
   finish
 endif
 let g:vigun_loaded = 1
+let g:vigun_remember_last_command = 1
 
 fun s:Debug(message)
   if exists("g:vigun_debug")
@@ -85,7 +86,7 @@ function s:RunTests(mode)
 
     let cmd = s:RenderCmd(cmd)
   else
-    if exists('s:last_command')
+    if exists('s:last_command') && g:vigun_remember_last_command
       let cmd = s:last_command
     else
       throw "There is no command to run ".expand('%').". Please set one up in g:vigun_mappings"
