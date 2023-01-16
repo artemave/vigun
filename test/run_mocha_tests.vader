@@ -50,6 +50,10 @@ Given javascript (js spec file):
         expect(true).to.eq(true)
       }
     )
+
+    it('backticks `also` work', function() {
+      expect(true).to.eq(true)
+    })
   })
 
 Execute (when there is no command for a file name):
@@ -111,7 +115,7 @@ Execute (with a different command):
   VigunRun 'debug-nearest'
   AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"a thing does not do that\" testSpec.js', GetLastMessage()
 
-Execute (traverses up the tree of contexts):
+Execute (test name contains context):
   file testSpec.js
   normal 38j
   VigunRun 'nearest'
@@ -122,6 +126,13 @@ Execute (handles test title on separate line):
   normal 44j
   VigunRun 'nearest'
   AssertEqual './node_modules/.bin/mocha --fgrep \"a thing handles test title on separate line\" testSpec.js', GetLastMessage()
+
+Execute (handles backticks):
+  file testSpec.js
+  /backtick
+  normal j
+  VigunRun 'nearest'
+  AssertEqual './node_modules/.bin/mocha --fgrep \"a thing backticks \\\`also\\\` work\" testSpec.js', GetLastMessage()
 
 Given javascript (.only test):
   const {expect} = require('chai')

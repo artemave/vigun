@@ -104,6 +104,7 @@ fun s:RenderCmd(cmd)
   let nearest_test_line_number = search(s:KeywordsRegexp().' *(', 'bn')
   let nearest_test_title = escape(s:TestTitleWithContext(nearest_test_line_number), '()?')
   let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\\\\\\\"', 'g')
+  let nearest_test_title = substitute(nearest_test_title, '`', '\\\\\\\\\\\\`', 'g')
 
   let result = substitute(a:cmd, '#{file}', expand('%'), 'g')
   let result = substitute(result, '#{line}', line('.'), 'g')
