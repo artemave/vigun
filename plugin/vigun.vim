@@ -102,8 +102,7 @@ function s:RunTests(mode)
 endfunction
 
 fun s:RenderCmd(cmd)
-  let nearest_test_line_number = search(s:KeywordsRegexp().' *(', 'bn')
-  let nearest_test_title = escape(s:TestTitleWithContext(nearest_test_line_number), '()?')
+  let nearest_test_title = escape(vigun#TestTitleWithContext(), '()?')
   let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\\\\\\\"', 'g')
   let nearest_test_title = substitute(nearest_test_title, '`', '\\\\\\\\\\\\`', 'g')
 
@@ -114,13 +113,14 @@ fun s:RenderCmd(cmd)
   return result
 endf
 
-fun s:TestTitleWithContext(test_line_number)
-  let test_title = s:TestTitle(a:test_line_number)
+fun vigun#TestTitleWithContext()
+  let nearest_test_line_number = search(s:KeywordsRegexp().' *(', 'bn')
+  let test_title = s:TestTitle(nearest_test_line_number)
 
   let starting_pos = getpos('.')
   call cursor(starting_pos[0], 1000)
 
-  let context_titles = s:TestContextStartLines(a:test_line_number)->reverse()->map('s:TestTitle(v:val)')->join(' ')
+  let context_titles = s:TestContextStartLines(nearest_test_line_number)->reverse()->map('s:TestTitle(v:val)')->join(' ')
 
   call setpos('.', starting_pos)
 
