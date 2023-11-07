@@ -320,7 +320,18 @@ if !exists('g:vigun_tmux_window_name')
 endif
 
 if !exists('g:vigun_test_keywords')
-  let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test', 'def test_\w\+']
+  let g:vigun_test_keywords = [
+    \ '[Ii]ts\?',
+    \ '[Cc]ontext',
+    \ '[Dd]escribe',
+    \ 'xit',
+    \ '[Ff]eature',
+    \ '[Ss]cenario',
+    \ 'test',
+    \ 'def test_\w\+',
+    \ 'group',
+    \ 'testWidgets'
+    \]
 endif
 
 if !exists('g:vigun_mappings')
