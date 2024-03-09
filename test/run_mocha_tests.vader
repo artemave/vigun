@@ -100,6 +100,7 @@ Execute (with a different command):
         \   'all': 'mocha #{file}',
         \   'debug-all': 'mocha --inspect-brk --no-timeouts #{file}',
         \   'debug-nearest': 'mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
+        \   'test-title-includes-context': 1
         \ },
         \]
 
@@ -108,7 +109,7 @@ Execute (with a different command):
 
   normal 14j
   VigunRun 'debug-nearest'
-  AssertEqual 'electron-mocha --interactive --fgrep \"a thing does not do that\" browser/testSpec.js', GetLastMessage()
+  AssertEqual 'electron-mocha --interactive --fgrep \"does not do that\" browser/testSpec.js', GetLastMessage()
 
   file testSpec.js
   VigunRun 'all'

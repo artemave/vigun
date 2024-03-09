@@ -84,7 +84,8 @@ function s:RunTests(mode)
       let cmd = get(config, substitute(a:mode, 'nearest', 'all', ''), cmd)
     endif
 
-    let cmd = s:RenderCmd(cmd)
+    let nearest_test_title = get(config, 'test-title-includes-context', 0) ? vigun#TestTitleWithContext() : vigun#TestTitle()
+    let cmd = s:RenderCmd(cmd, nearest_test_title)
   else
     if exists('s:last_command') && g:vigun_remember_last_command
       let cmd = s:last_command
@@ -101,8 +102,8 @@ function s:RunTests(mode)
   endif
 endfunction
 
-fun s:RenderCmd(cmd)
-  let nearest_test_title = escape(vigun#TestTitleWithContext(), '()?')
+fun s:RenderCmd(cmd, nearest_test_title)
+  let nearest_test_title = escape(a:nearest_test_title, '()?')
   let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\\\\\\\"', 'g')
   let nearest_test_title = substitute(nearest_test_title, '`', '\\\\\\\\\\\\`', 'g')
 
@@ -115,12 +116,12 @@ endf
 
 fun vigun#TestTitleWithContext()
   let nearest_test_line_number = search(s:KeywordsRegexp().' *(', 'bn')
-  let test_title = s:TestTitle(nearest_test_line_number)
+  let test_title = vigun#TestTitle(nearest_test_line_number)
 
   let starting_pos = getpos('.')
   call cursor(starting_pos[0], 1000)
 
-  let context_titles = s:TestContextStartLines(nearest_test_line_number)->reverse()->map('s:TestTitle(v:val)')->join(' ')
+  let context_titles = s:TestContextStartLines(nearest_test_line_number)->reverse()->map('vigun#TestTitle(v:val)')->join(' ')
 
   call setpos('.', starting_pos)
 
@@ -146,10 +147,12 @@ fun s:TestContextStartLines(test_line_number, result = [])
   return a:result
 endf
 
-fun s:TestTitle(line_number)
-  let line = getline(a:line_number)
+fun vigun#TestTitle(...)
+  let line_number = a:0 ? a:1 : search(s:KeywordsRegexp().' *(', 'bn')
+
+  let line = getline(line_number)
   if line =~ s:KeywordsRegexp().' *($'
-    let line = getline(a:line_number + 1)
+    let line = getline(line_number + 1)
   endif
 
   let test_title = matchstr(line, "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$")
@@ -180,12 +183,12 @@ fun s:SubstituteAll(pattern, ...)
   let l = 1
   for line in getline(1, '$')
     if match(line, a:pattern)
-      let replacement = ''
+      let new_text = ''
       if a:0
-        replacement = a:0
+        new_text = a:0
       endif
 
-      call setline(l, substitute(line, a:pattern, replacement, 'g'))
+      call setline(l, substitute(line, a:pattern, new_text, 'g'))
     endif
     let l = l + 1
   endfor
@@ -228,7 +231,7 @@ function s:ShowSpecIndex()
     if line =~ s:KeywordsRegexp()
       let indent = substitute(line, '^\([ \t]*\).*', '\=submatch(1)', '')
       let indent = substitute(indent, '[ \t]', nr2char(160), 'g')
-      call add(qflist_entries, {'filename': expand('%'), 'lnum': line_number, 'text': indent . s:TestTitle(line_number)})
+      call add(qflist_entries, {'filename': expand('%'), 'lnum': line_number, 'text': indent . vigun#TestTitle(line_number)})
     endif
   endfor
 
@@ -337,11 +340,17 @@ endif
 if !exists('g:vigun_mappings')
   let g:vigun_mappings = [
         \ {
+        \   'pattern': '.(spec|test).js$',
+        \   'all': 'node --test #{file}',
+        \   'nearest': 'node --test --test-name-pattern=#{nearest_test} #{file}',
+        \ },
+        \ {
         \   'pattern': 'Spec.js$',
         \   'all': './node_modules/.bin/mocha #{file}',
         \   'nearest': './node_modules/.bin/mocha --fgrep #{nearest_test} #{file}',
         \   'debug-all': './node_modules/.bin/mocha --inspect-brk --no-timeouts #{file}',
         \   'debug-nearest': './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
+        \   'test-title-includes-context': 1
         \ },
         \ {
         \   'pattern': '_test.py$',
