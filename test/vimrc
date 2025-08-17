@@ -4,6 +4,32 @@ set rtp+=.
 filetype plugin indent on
 syntax enable
 
+" Install and configure nvim-treesitter for tests
+if has('nvim')
+  " Create a temporary plugin directory for treesitter
+  let g:test_treesitter_dir = './tmp/nvim-treesitter'
+
+  " Clone nvim-treesitter if not present
+  if !isdirectory(g:test_treesitter_dir)
+    call system('mkdir -p ./tmp')
+    call system('git clone --depth 1 https://github.com/nvim-treesitter/nvim-treesitter.git ' . g:test_treesitter_dir)
+  endif
+
+  " Add to runtime path
+  execute 'set rtp+=' . g:test_treesitter_dir
+
+  " Configure treesitter
+  lua << EOF
+  require'nvim-treesitter.configs'.setup {
+    ensure_installed = { "javascript", "python", "ruby", "typescript" },
+    sync_install = true,
+    highlight = {
+      enable = true,
+    },
+  }
+EOF
+endif
+
 fun GetLastMessage()
   redir => msgs
   silent messages
@@ -45,4 +71,4 @@ fun GetMatchCount(pattern)
 endf
 
 let g:vigun_dry_run=1
-" let g:vigun_debug = 1
+let g:vigun_debug = 1

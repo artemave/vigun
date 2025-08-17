@@ -115,54 +115,15 @@ fun s:RenderCmd(cmd, nearest_test_title)
 endf
 
 fun vigun#TestTitleWithContext()
-  let nearest_test_line_number = search(s:KeywordsRegexp().' *(', 'bn')
-  let test_title = vigun#TestTitle(nearest_test_line_number)
-
-  let starting_pos = getpos('.')
-  call cursor(starting_pos[0], 1000)
-
-  let context_titles = s:TestContextStartLines(nearest_test_line_number)->reverse()->map('vigun#TestTitle(v:val)')->join(' ')
-
-  call setpos('.', starting_pos)
-
-  if len(context_titles)
-    return context_titles.' '.test_title
-  else
-    return test_title
-  endif
-endf
-
-fun s:TestContextStartLines(test_line_number, result = [])
-  let context_start = search(s:KeywordsRegexp('context').' *(', 'bWe')
-  let context_end = searchpair('(', '', ')', 'n')
-
-  if context_start && context_start > 1
-    if context_start <= a:test_line_number && context_end >= a:test_line_number
-      call add(a:result, context_start)
-    endif
-
-    return s:TestContextStartLines(a:test_line_number, a:result)
-  endif
-
-  return a:result
+  let treesitter_title = luaeval('require("vigun.treesitter").get_test_title_with_context()')
+  return treesitter_title
 endf
 
 fun vigun#TestTitle(...)
-  let line_number = a:0 ? a:1 : search(s:KeywordsRegexp().' *(', 'bn')
+  let line_number = a:0 ? a:1 : line('.')
+  let treesitter_title = luaeval('require("vigun.treesitter").get_test_title(_A)', line_number)
 
-  let line = getline(line_number)
-  if line =~ s:KeywordsRegexp().' *($'
-    let line = getline(line_number + 1)
-  endif
-
-  let test_title = matchstr(line, "['".'"`]\zs.*\ze'."['".'"`][^"`'."']*$")
-  " if test name is not a string (e.g. mocha, rspec),
-  " try method name instead (e.g. pytest)
-  if test_title == ''
-    let method_declaration = matchstr(line, s:KeywordsRegexp())
-    let test_title = matchstr(method_declaration, '\w\+$')
-  endif
-  return test_title
+  return treesitter_title
 endf
 
 function s:KeywordsRegexp(...)
@@ -176,7 +137,7 @@ function s:KeywordsRegexp(...)
 endfunction
 
 function s:IsOnlySet()
-  return search(s:KeywordsRegexp().'\.only(', 'nw')
+  return luaeval('require("vigun.treesitter").has_only_tests()')
 endfunction
 
 fun s:SubstituteAll(pattern, ...)
@@ -226,13 +187,10 @@ endfunction
 function s:ShowSpecIndex()
   let qflist_entries = []
 
-  for line_number in range(1,line('$'))
-    let line = getline(line_number)
-    if line =~ s:KeywordsRegexp()
-      let indent = substitute(line, '^\([ \t]*\).*', '\=submatch(1)', '')
-      let indent = substitute(indent, '[ \t]', nr2char(160), 'g')
-      call add(qflist_entries, {'filename': expand('%'), 'lnum': line_number, 'text': indent . vigun#TestTitle(line_number)})
-    endif
+  let test_nodes = luaeval('require("vigun.treesitter").get_test_nodes()')
+  for test_node in test_nodes
+    let indent = repeat(nr2char(160), test_node.depth * 2)
+    call add(qflist_entries, {'filename': expand('%'), 'lnum': test_node.line, 'text': indent . test_node.title})
   endfor
 
   call setqflist([], 'r', {'title': 'Spec index', 'items': qflist_entries})
