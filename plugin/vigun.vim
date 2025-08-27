@@ -198,7 +198,7 @@ function s:ShowSpecIndex()
 
   " hide filename and linenumber
   set conceallevel=2 concealcursor=nc
-  syntax match llFileName /^[^|]*|[^|]*| / transparent conceal
+  syntax match llFileName /^[^|]*|[^|]*| / conceal display contains=NONE
 endfunction
 
 fun s:CurrentTestBefore(...)
