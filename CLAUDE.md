@@ -45,10 +45,6 @@ The test runner uses Vader.vim testing framework and automatically clones it if 
 - Supports nested test contexts (describe/context blocks)
 - Special handling for different test naming patterns
 
-**Debug Integration** (`s:CopyMochaDebugUrlToClipboard()`):
-- Captures Chrome DevTools URLs for Node.js debugging
-- Uses tmux buffer capture to extract debug URLs from test output
-
 ### Default Test Framework Mappings
 
 ```vim

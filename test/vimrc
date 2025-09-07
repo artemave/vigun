@@ -71,4 +71,3 @@ fun GetMatchCount(pattern)
 endf
 
 let g:vigun_dry_run=1
-let g:vigun_debug = 1
