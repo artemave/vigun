@@ -7,6 +7,8 @@ Vim plugin to run tests in a separate tmux window.
 
 Out of the box it works with mocha, rspec and cucumber. Other test frameworks can be supported through some configuration.
 
+Treesitter: Vigun uses Neovim Treesitter to find the nearest test, build precise test titles (optionally including context), toggle `.only`, and fold non‑relevant tests. For best results, use Neovim with Treesitter parsers installed (e.g., `:TSInstall javascript typescript ruby python`).
+
 ## Installation
 
 Use [a plugin manager](https://github.com/junegunn/vim-plug):
@@ -70,6 +72,16 @@ au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIn
 ```
 
 ## Configuration
+
+### Treesitter
+
+Vigun relies on Treesitter for test discovery and folding. Ensure Neovim has relevant parsers installed for your languages. Example:
+
+```
+:TSInstall javascript typescript ruby python
+```
+
+If a parser is missing, features like `:VigunRun 'nearest'`, `:VigunToggleOnly`, and `:VigunCurrentTestBefore` may not work as expected.
 
 ### g:vigun_mappings
 
