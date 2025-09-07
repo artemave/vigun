@@ -125,16 +125,6 @@ au FileType {ruby} nnoremap <leader>wT :VigunRun 'watch-nearest'<cr>
 
 Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely to be empty.
 
-### g:vigun_test_keywords
-
-A line that starts with one of the following, is considered a start of the test and is used to work out `#{nearest_test}`:
-
-```vim script
-let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test']
-```
-
-Overwrie `g:vigun_test_keywords` to suit your needs.
-
 ### g:vigun_tmux_window_name
 
 Name of the tmux window where tests commands are sent. Defaults to `test`.

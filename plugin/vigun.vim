@@ -93,15 +93,7 @@ fun vigun#TestTitle(...)
   return treesitter_title
 endf
 
-function s:KeywordsRegexp(...)
-  if a:0 && a:1 == 'context'
-    let keywords = ['context', 'describe']
-  else
-    let keywords = g:vigun_test_keywords
-  endif
-  let search = '^[ \t]*\<\('. join(keywords, '\|') .'\)\>'
-  return search
-endfunction
+" Treesitter migration: legacy keyword regex removed
 
 function s:IsOnlySet()
   return luaeval('require("vigun.treesitter").has_only_tests()')
@@ -123,7 +115,7 @@ fun s:SubstituteAll(pattern, ...)
 endf
 
 function s:MochaOnly()
-  let current_test_line_number = search(s:KeywordsRegexp().'\(\.only\)\?(', 'bnw')
+  let current_test_line_number = luaeval('require("vigun.treesitter").find_nearest_test(_A)', line('.'))
 
   if !current_test_line_number
     return
@@ -173,49 +165,14 @@ fun s:CurrentTestBefore(...)
   call cursor(starting_pos[0], 1000)
   normal zE
 
-  fun! s:FoldBlock(next_test_start, next_test_end)
-    execute a:next_test_start.",".a:next_test_end.' fold'
+  let folds = luaeval('require("vigun.treesitter").get_fold_ranges_for_line(_A)', line('.'))
+  for fold in folds
+    execute fold.start.",".fold["end"].' fold'
+    call cursor(fold.start, 1)
     normal zC
-  endf
-
-  call s:ForEachNonParentBlock(funcref('s:FoldBlock'))
+  endfor
 
   call setpos('.', starting_pos)
-endf
-
-fun s:ForEachNonParentBlock(...)
-  let Callback = a:1
-
-  if a:0 > 1
-    let nearest_test_start = a:2
-    let nearest_test_end = a:3
-    call cursor(nearest_test_start, 1)
-  else
-    let nearest_test_start = search(s:KeywordsRegexp().' *(', 'bWe')
-    let nearest_test_end = searchpair('(', '', ')')
-  endif
-
-  if nearest_test_start && nearest_test_end
-    let context_start = search(s:KeywordsRegexp('context').' *(', 'bWe')
-    let context_end = searchpair('(', '', ')', 'n')
-
-    while context_end && context_end < nearest_test_start
-      call cursor(context_start, 1)
-      let context_start = search(s:KeywordsRegexp('context').' *(', 'bWe')
-      let context_end = searchpair('(', '', ')', 'n')
-    endwhile
-
-    let next_test_start = search(s:KeywordsRegexp().' *(', 'e')
-    while next_test_start && next_test_start < context_end
-      if next_test_start < nearest_test_start || next_test_start > nearest_test_end
-        let next_test_end = searchpair('(', '', ')')
-        call Callback(next_test_start, next_test_end)
-      endif
-      let next_test_start = search(s:KeywordsRegexp().' *(', 'eW')
-    endwhile
-
-    call s:ForEachNonParentBlock(Callback, context_start, context_end)
-  endif
 endf
 
 fun! s:ToggleTestWindowToPane()
@@ -237,21 +194,6 @@ endif
 
 if !exists('g:vigun_tmux_window_name')
   let g:vigun_tmux_window_name = 'test'
-endif
-
-if !exists('g:vigun_test_keywords')
-  let g:vigun_test_keywords = [
-    \ '[Ii]ts\?',
-    \ '[Cc]ontext',
-    \ '[Dd]escribe',
-    \ 'xit',
-    \ '[Ff]eature',
-    \ '[Ss]cenario',
-    \ 'test',
-    \ 'def test_\w\+',
-    \ 'group',
-    \ 'testWidgets'
-    \]
 endif
 
 if !exists('g:vigun_mappings')
