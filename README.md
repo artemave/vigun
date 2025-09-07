@@ -7,6 +7,8 @@ Vim plugin to run tests in a separate tmux window.
 
 Out of the box it works with mocha, rspec and cucumber. Other test frameworks can be supported through some configuration.
 
+Treesitter: Vigun uses Neovim Treesitter to find the nearest test, build precise test titles (optionally including context), toggle `.only`, and fold non‑relevant tests. For best results, use Neovim with Treesitter parsers installed (e.g., `:TSInstall javascript typescript ruby python`).
+
 ## Installation
 
 Use [a plugin manager](https://github.com/junegunn/vim-plug):
@@ -71,6 +73,16 @@ au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIn
 
 ## Configuration
 
+### Treesitter
+
+Vigun relies on Treesitter for test discovery and folding. Ensure Neovim has relevant parsers installed for your languages. Example:
+
+```
+:TSInstall javascript typescript ruby python
+```
+
+If a parser is missing, features like `:VigunRun 'nearest'`, `:VigunToggleOnly`, and `:VigunCurrentTestBefore` may not work as expected.
+
 ### g:vigun_mappings
 
 Out of the box, vigun runs mocha, rspec and cucumber. You can add support for new frameworks or modify the default ones:
@@ -124,16 +136,6 @@ au FileType {ruby} nnoremap <leader>wT :VigunRun 'watch-nearest'<cr>
 #### Magic property names
 
 Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely to be empty.
-
-### g:vigun_test_keywords
-
-A line that starts with one of the following, is considered a start of the test and is used to work out `#{nearest_test}`:
-
-```vim script
-let g:vigun_test_keywords = ['[Ii]ts\?', '[Cc]ontext', '[Dd]escribe', 'xit', '[Ff]eature', '[Ss]cenario', 'test']
-```
-
-Overwrie `g:vigun_test_keywords` to suit your needs.
 
 ### g:vigun_tmux_window_name
 

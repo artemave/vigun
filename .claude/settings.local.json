@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./run_tests)",
+      "Bash(./run_tests:*)",
+      "Bash(git stash:*)",
+      "Bash(nvim:*)",
+      "Bash(lua:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

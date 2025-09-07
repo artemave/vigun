@@ -358,7 +358,80 @@ function M.get_test_nodes()
     })
   end
 
-  return test_nodes
+return test_nodes
+end
+
+-- Compute fold ranges for all tests that are not on the path to the current test
+function M.get_fold_ranges_for_line(line_number)
+  local target_line = (line_number or vim.fn.line('.')) - 1
+  local bufnr = vim.api.nvim_get_current_buf()
+  local nodes = get_test_nodes_via_query(bufnr)
+
+  -- Find selected test node (contains or closest before the target line)
+  local selected = nil
+  for _, node_info in ipairs(nodes) do
+    if not node_info.is_context and node_info.start_row <= target_line and node_info.end_row >= target_line then
+      selected = node_info
+      break
+    elseif not node_info.is_context and node_info.start_row <= target_line then
+      selected = node_info
+    end
+  end
+  if not selected then
+    return {}
+  end
+
+  -- Collect ancestor contexts that contain the selected test
+  local ancestors = {}
+  for _, node_info in ipairs(nodes) do
+    if node_info.is_context and node_info.start_row < selected.start_row and node_info.end_row > selected.end_row then
+      table.insert(ancestors, node_info)
+    end
+  end
+  table.sort(ancestors, function(a, b) return a.start_row < b.start_row end)
+
+  local ranges = {}
+  -- Start with the selected test as the kept child range inside its parent context
+  local kept_child = { start_row = selected.start_row, end_row = selected.end_row }
+
+  -- Helper to determine if A is strictly inside B
+  local function inside(a, b)
+    return a.start_row > b.start_row and a.end_row < b.end_row
+  end
+
+  -- Walk from innermost ancestor outwards; fold all other immediate children inside each ancestor
+  for i = #ancestors, 1, -1 do
+    local ctx = ancestors[i]
+
+    -- Collect immediate children calls (tests or contexts) of this context
+    local children = {}
+    for _, cand in ipairs(nodes) do
+      if cand.start_row > ctx.start_row and cand.end_row < ctx.end_row then
+        -- Check if there is an intermediate context that contains cand
+        local is_immediate = true
+        for _, other in ipairs(nodes) do
+          if other.is_context and other ~= ctx and other ~= cand and inside(other, ctx) and cand.start_row >= other.start_row and cand.end_row <= other.end_row then
+            is_immediate = false
+            break
+          end
+        end
+        if is_immediate then
+          table.insert(children, cand)
+        end
+      end
+    end
+
+    for _, child in ipairs(children) do
+      local inside_kept = child.start_row >= kept_child.start_row and child.end_row <= kept_child.end_row
+      if not inside_kept then
+        table.insert(ranges, { start = child.start_row + 1, ["end"] = child.end_row + 1 })
+      end
+    end
+
+    kept_child = { start_row = ctx.start_row, end_row = ctx.end_row }
+  end
+
+  return ranges
 end
 
 return M
