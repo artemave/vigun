@@ -1,22 +1,42 @@
 local M = {}
 
--- Treesitter query for JavaScript/TypeScript test functions - capture ALL call expressions
-local js_test_query = vim.treesitter.query.parse("javascript", [[
-  (call_expression) @call
-]])
+-- Lazy query holders
+local js_test_query = nil
+local tsx_test_query = nil
+local ts_test_query = nil
+local python_test_query = nil
+local ruby_test_query = nil
 
--- Treesitter query for Python test functions
-local python_test_query = vim.treesitter.query.parse("python", [[
-  (function_definition
-    name: (identifier) @func
-    (#match? @func "^test_")
-  ) @call
-]])
-
--- Treesitter query for Ruby test functions - capture ALL call expressions
-local ruby_test_query = vim.treesitter.query.parse("ruby", [[
-  (call) @call
-]])
+local function ensure_query(lang)
+  if lang == 'javascript' and not js_test_query then
+    js_test_query = vim.treesitter.query.parse('javascript', [[
+      (call_expression) @call
+    ]])
+  elseif lang == 'typescript' and not ts_test_query then
+    ts_test_query = vim.treesitter.query.parse('typescript', [[
+      (call_expression) @call
+    ]])
+  elseif lang == 'javascriptreact' and not tsx_test_query then
+    tsx_test_query = vim.treesitter.query.parse('javascriptreact', [[
+      (call_expression) @call
+    ]])
+  elseif lang == 'typescriptreact' and not tsx_test_query then
+    tsx_test_query = vim.treesitter.query.parse('typescriptreact', [[
+      (call_expression) @call
+    ]])
+  elseif lang == 'python' and not python_test_query then
+    python_test_query = vim.treesitter.query.parse('python', [[
+      (function_definition
+        name: (identifier) @func
+        (#match? @func "^test_")
+      ) @call
+    ]])
+  elseif lang == 'ruby' and not ruby_test_query then
+    ruby_test_query = vim.treesitter.query.parse('ruby', [[
+      (call) @call
+    ]])
+  end
+end
 
 -- Extract test title from a string node
 local function extract_string_content(string_node, bufnr)
@@ -86,11 +106,16 @@ local function get_test_nodes_via_query(bufnr)
 
   local nodes = {}
 
-  -- Use JavaScript query for JavaScript/TypeScript files
+  -- Use queries for JavaScript/TypeScript files
   local filetype = vim.bo[bufnr].filetype
   if filetype == 'javascript' or filetype == 'typescript' or filetype == 'javascriptreact' or filetype == 'typescriptreact' then
-    for id, node, metadata in js_test_query:iter_captures(root, bufnr, 0, -1) do
-      local capture_name = js_test_query.captures[id]
+    ensure_query(filetype)
+    local q = js_test_query
+    if filetype == 'typescript' and ts_test_query then q = ts_test_query end
+    if (filetype == 'javascriptreact' or filetype == 'typescriptreact') and tsx_test_query then q = tsx_test_query end
+    if not q then return {} end
+    for id, node, metadata in q:iter_captures(root, bufnr, 0, -1) do
+      local capture_name = q.captures[id]
       if capture_name == 'call' then
         -- Manually extract function name and first string argument
         local func_node = node:child(0) -- First child is the function
@@ -127,6 +152,8 @@ local function get_test_nodes_via_query(bufnr)
       end
     end
   elseif filetype == 'ruby' then
+    ensure_query('ruby')
+    if not ruby_test_query then return {} end
     -- Use Ruby query for Ruby files
     for id, node, metadata in ruby_test_query:iter_captures(root, bufnr, 0, -1) do
       local capture_name = ruby_test_query.captures[id]
@@ -181,6 +208,8 @@ local function get_test_nodes_via_query(bufnr)
       end
     end
   elseif filetype == 'python' then
+    ensure_query('python')
+    if not python_test_query then return {} end
     -- Use Python query for Python files
     for id, node, metadata in python_test_query:iter_captures(root, bufnr, 0, -1) do
       local capture_name = python_test_query.captures[id]

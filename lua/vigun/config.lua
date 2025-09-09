@@ -13,7 +13,7 @@ end
 
 function M.default_config()
   return {
-    {
+    mocha = {
       enabled = function()
         return vim.fn.expand('%'):match('Spec%.js$') ~= nil
       end,
@@ -44,7 +44,7 @@ function M.default_config()
         end,
       },
     },
-    {
+    pytest = {
       enabled = function()
         return vim.fn.expand('%'):match('_test%.py$') ~= nil
       end,
@@ -67,7 +67,7 @@ function M.default_config()
         end,
       },
     },
-    {
+    rspec = {
       enabled = function()
         return vim.fn.expand('%'):match('_spec%.rb$') ~= nil
       end,
@@ -85,6 +85,47 @@ function M.default_config()
   }
 end
 
+-- Order used when checking which config is active
+M._order = { 'mocha', 'pytest', 'rspec' }
+
+-- Deep merge user config into defaults, merging by top-level keys (mocha, pytest, etc.)
+local function deep_merge(dst, src)
+  for k, v in pairs(src or {}) do
+    if type(v) == 'table' and type(dst[k]) == 'table' then
+      deep_merge(dst[k], v)
+    else
+      dst[k] = v
+    end
+  end
+  return dst
+end
+
+local function merged_config()
+  local defaults = M.default_config()
+  if not M.has_config() then return defaults end
+  local user = vim.g.vigun_config
+  if type(user) ~= 'table' then return defaults end
+  -- Merge only known keys; also allow new keys but they will be considered later
+  local result = {}
+  -- Start with defaults clone
+  for k, v in pairs(defaults) do
+    if type(v) == 'table' then
+      result[k] = vim.deepcopy(v)
+    else
+      result[k] = v
+    end
+  end
+  -- Merge user entries by key
+  for k, v in pairs(user) do
+    if result[k] ~= nil and type(v) == 'table' then
+      deep_merge(result[k], v)
+    else
+      result[k] = v
+    end
+  end
+  return result
+end
+
 local function normalize_mode(mode)
   if type(mode) ~= 'string' then return mode end
   mode = mode:gsub('^%s+', ''):gsub('%s+$', '')
@@ -98,27 +139,22 @@ local function normalize_mode(mode)
   return mode
 end
 
-local function iter_entries(cfg)
-  if type(cfg) ~= 'table' then return function() end end
-  if cfg[1] ~= nil then
-    local i = 0
-    return function()
-      i = i + 1
-      if cfg[i] then return i, cfg[i] end
-    end
-  else
-    return pairs(cfg)
-  end
-end
-
 -- Return the first enabled config entry for the current buffer
 function M.get_active()
-  local cfg = M.has_config() and vim.g.vigun_config or M.default_config()
-  for _, entry in iter_entries(cfg) do
-    if type(entry.enabled) == 'function' then
-      if entry.enabled() then
-        return entry
-      end
+  local cfg = merged_config()
+  -- Check in declared order first
+  for _, key in ipairs(M._order) do
+    local entry = cfg[key]
+    if entry and type(entry.enabled) == 'function' and entry.enabled() then
+      return entry
+    end
+  end
+  -- Fallback: check any other keys provided by user
+  for key, entry in pairs(cfg) do
+    local known = false
+    for _, k in ipairs(M._order) do if k == key then known = true break end end
+    if not known and type(entry) == 'table' and type(entry.enabled) == 'function' then
+      if entry.enabled() then return entry end
     end
   end
 end
@@ -132,11 +168,25 @@ function M.get_command(mode)
     error('Vigun: no enabled config for ' .. vim.fn.expand('%'))
   end
 
-  -- Only pass semantic info that requires Treesitter; callsites may use vim.fn for file/line
-  local info = {
-    test_title = require('vigun.treesitter').get_test_title(),
-    context_titles = require('vigun.treesitter').get_context_titles(),
-  }
+  -- Lazily-computed semantic info; avoids requiring Treesitter unless needed
+  local function make_info()
+    local cache = {}
+    return setmetatable({}, {
+      __index = function(_, key)
+        if cache[key] ~= nil then return cache[key] end
+        local ts = require('vigun.treesitter')
+        if key == 'test_title' then
+          cache[key] = ts.get_test_title()
+        elseif key == 'context_titles' then
+          cache[key] = ts.get_context_titles()
+        else
+          return nil
+        end
+        return cache[key]
+      end
+    })
+  end
+  local info = make_info()
 
   local cmds = entry.commands or {}
   local fn = cmds[mode]

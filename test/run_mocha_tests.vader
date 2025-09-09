@@ -90,33 +90,38 @@ Execute (with a different command):
   file browser/testSpec.js
   lua << EOF
   vim.g.vigun_config = {
-    {
-      enabled = function() return vim.fn.expand('%'):match('^browser/.*Spec%.js$') ~= nil end,
-      test_nodes = { 'it', 'xit' },
-      context_nodes = { 'context', 'describe' },
+    mocha = {
+      -- In this test, only override commands; keep defaults for nodes/enabled
       commands = {
-        all = function(_) return 'electron-mocha --renderer ' .. vim.fn.expand('%') end,
-        ['debug-all'] = function(_) return 'electron-mocha --interactive ' .. vim.fn.expand('%') end,
-        ['debug-nearest'] = function(info)
-          local quoted = vim.fn.shellescape(info.test_title)
-          return 'electron-mocha --interactive --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+        all = function(_)
+          local f = vim.fn.expand('%')
+          if f:match('^browser/.*Spec%.js$') then
+            return 'electron-mocha --renderer ' .. f
+          else
+            return 'mocha ' .. f
+          end
         end,
-      },
-    },
-    {
-      enabled = function() return vim.fn.expand('%'):match('Spec%.js$') ~= nil end,
-      test_nodes = { 'it', 'xit' },
-      context_nodes = { 'context', 'describe' },
-      commands = {
-        all = function(_) return 'mocha ' .. vim.fn.expand('%') end,
-        ['debug-all'] = function(_) return 'mocha --inspect-brk --no-timeouts ' .. vim.fn.expand('%') end,
+        ['debug-all'] = function(_)
+          local f = vim.fn.expand('%')
+          if f:match('^browser/.*Spec%.js$') then
+            return 'electron-mocha --interactive ' .. f
+          else
+            return 'mocha --inspect-brk --no-timeouts ' .. f
+          end
+        end,
         ['debug-nearest'] = function(info)
-          local parts = {}
-          for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
-          table.insert(parts, info.test_title)
-          local title = table.concat(parts, ' ')
-          local quoted = vim.fn.shellescape(title)
-          return 'mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+          local f = vim.fn.expand('%')
+          if f:match('^browser/.*Spec%.js$') then
+            local quoted = vim.fn.shellescape(info.test_title)
+            return 'electron-mocha --interactive --fgrep ' .. quoted .. ' ' .. f
+          else
+            local parts = {}
+            for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+            table.insert(parts, info.test_title)
+            local title = table.concat(parts, ' ')
+            local quoted = vim.fn.shellescape(title)
+            return 'mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. f
+          end
         end,
       },
     },

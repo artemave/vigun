@@ -1,34 +1,25 @@
 filetype off
-set rtp+=vader.vim
 set rtp+=.
+
+call system('mkdir -p ./tmp')
+
+let test_repos = {
+  \ 'nvim-treesitter': 'https://github.com/nvim-treesitter/nvim-treesitter.git',
+  \ 'plenary.nvim': 'https://github.com/nvim-lua/plenary.nvim.git',
+  \ 'vader.vim': 'https://github.com/junegunn/vader.vim.git'
+  \ }
+
+" Clone repositories if not present and add to runtime path
+for [repo_name, repo_url] in items(test_repos)
+  let repo_dir = './tmp/' . repo_name
+  if !isdirectory(repo_dir)
+    call system('git clone --depth 1 ' . repo_url . ' ' . repo_dir)
+  endif
+  execute 'set rtp+=' . repo_dir
+endfor
+
 filetype plugin indent on
 syntax enable
-
-" Install and configure nvim-treesitter for tests
-if has('nvim')
-  " Create a temporary plugin directory for treesitter
-  let g:test_treesitter_dir = './tmp/nvim-treesitter'
-
-  " Clone nvim-treesitter if not present
-  if !isdirectory(g:test_treesitter_dir)
-    call system('mkdir -p ./tmp')
-    call system('git clone --depth 1 https://github.com/nvim-treesitter/nvim-treesitter.git ' . g:test_treesitter_dir)
-  endif
-
-  " Add to runtime path
-  execute 'set rtp+=' . g:test_treesitter_dir
-
-  " Configure treesitter
-  lua << EOF
-  require'nvim-treesitter.configs'.setup {
-    ensure_installed = { "javascript", "python", "ruby", "typescript" },
-    sync_install = true,
-    highlight = {
-      enable = true,
-    },
-  }
-EOF
-endif
 
 fun GetLastMessage()
   redir => msgs
@@ -73,13 +64,21 @@ endf
 let g:vigun_dry_run=1
 
 " Provide test-time configuration via Lua config API
-lua << 'EOF'
+lua << EOF
+require'nvim-treesitter.configs'.setup {
+  ensure_installed = { "javascript", "python", "ruby", "typescript" },
+  sync_install = true,
+  highlight = {
+    enable = true,
+  },
+}
+
 local function quote_for_msg(s)
   return vim.fn.shellescape(s)
 end
 
 vim.g.vigun_config = {
-  {
+  mocha = {
     enabled = function()
       return vim.fn.expand('%'):match('Spec%.js$') ~= nil
     end,
@@ -105,7 +104,7 @@ vim.g.vigun_config = {
     },
   },
 
-  {
+  pytest = {
     enabled = function()
       return vim.fn.expand('%'):match('_test%.py$') ~= nil
     end,
@@ -129,7 +128,7 @@ vim.g.vigun_config = {
     },
   },
 
-  {
+  rspec = {
     enabled = function()
       return vim.fn.expand('%'):match('_spec%.rb$') ~= nil
     end,
