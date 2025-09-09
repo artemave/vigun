@@ -4,14 +4,14 @@ set -e
 
 test_file=${1:-test/**/*.vader}
 
-if [ ! -d ./vader.vim ]; then
-  git clone https://github.com/junegunn/vader.vim.git
-fi
-
 if [ -z "$CI" ]; then
   cmd=nvim
 else
   cmd=./squashfs-root/usr/bin/nvim
 fi
 
-$cmd -es -Nu ./test/vimrc -c "Vader! $test_file"
+$cmd -es -u ./test/vimrc -c "Vader! $test_file"
+
+echo "\n== Lua config tests (plenary) =="
+
+$cmd -es -u ./test/vimrc -c "PlenaryBustedDirectory lua/vigun/tests/ { sequential = true }"
