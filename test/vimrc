@@ -71,3 +71,78 @@ fun GetMatchCount(pattern)
 endf
 
 let g:vigun_dry_run=1
+
+" Provide test-time configuration via Lua config API
+lua << 'EOF'
+local function quote_for_msg(s)
+  return vim.fn.shellescape(s)
+end
+
+vim.g.vigun_config = {
+  {
+    enabled = function()
+      return vim.fn.expand('%'):match('Spec%.js$') ~= nil
+    end,
+    test_nodes = { 'it', 'xit' },
+    context_nodes = { 'context', 'describe' },
+    commands = {
+      all = function(_)
+        return './node_modules/.bin/mocha ' .. vim.fn.expand('%')
+      end,
+      ['debug-all'] = function(_)
+        return './node_modules/.bin/mocha --inspect-brk --no-timeouts ' .. vim.fn.expand('%')
+      end,
+      nearest = function(_)
+        local title = vim.fn['vigun#TestTitleWithContext']()
+        local quoted = quote_for_msg(title)
+        return './node_modules/.bin/mocha --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+      end,
+      ['debug-nearest'] = function(_)
+        local title = vim.fn['vigun#TestTitleWithContext']()
+        local quoted = quote_for_msg(title)
+        return './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+      end,
+    },
+  },
+
+  {
+    enabled = function()
+      return vim.fn.expand('%'):match('_test%.py$') ~= nil
+    end,
+    test_nodes = { 'test' },
+    context_nodes = {},
+    commands = {
+      all = function(_)
+        return 'pytest -s ' .. vim.fn.expand('%')
+      end,
+      nearest = function(info)
+        local quoted = quote_for_msg(info.test_title)
+        return 'pytest -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
+      end,
+      ['debug-all'] = function(_)
+        return 'pytest -vv -s ' .. vim.fn.expand('%')
+      end,
+      ['debug-nearest'] = function(info)
+        local quoted = quote_for_msg(info.test_title)
+        return 'pytest -vv -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
+      end,
+    },
+  },
+
+  {
+    enabled = function()
+      return vim.fn.expand('%'):match('_spec%.rb$') ~= nil
+    end,
+    test_nodes = { 'it', 'xit' },
+    context_nodes = { 'describe', 'context' },
+    commands = {
+      all = function(_)
+        return 'rspec ' .. vim.fn.expand('%')
+      end,
+      nearest = function(_)
+        return 'rspec ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+      end,
+    },
+  },
+}
+EOF

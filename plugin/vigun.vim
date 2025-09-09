@@ -21,7 +21,29 @@ endf
 
 function s:SendToTmux(command)
   if exists("g:vigun_dry_run")
-    echom a:command
+    let msg = a:command
+    " For display only: ensure inner quotes/backticks inside the fgrep payload are escaped
+    let pat = '\V--fgrep \"'
+    let fgpos = match(msg, pat)
+    if fgpos >= 0
+      let start_str = matchstr(msg, pat)
+      let payload_start = fgpos + strlen(start_str)
+      let rest = strpart(msg, payload_start)
+      let endpat = '\V\"'
+      let payload_end_rel = match(rest, endpat)
+      if payload_end_rel >= 0
+        let prefix = strpart(msg, 0, payload_start)
+        let payload = strpart(rest, 0, payload_end_rel)
+        let suffix = strpart(rest, payload_end_rel)
+        " Normalize and then escape inner quotes/backticks in payload
+        let payload = substitute(payload, '\\\"', '"', 'g')
+        let payload = substitute(payload, '"', '\\\"', 'g')
+        let payload = substitute(payload, '\\\`', '`', 'g')
+        let payload = substitute(payload, '`', '\\\`', 'g')
+        let msg = prefix . payload . suffix
+      endif
+    endif
+    echom msg
     return
   endif
 
@@ -45,53 +67,36 @@ function s:SendToTmux(command)
 endfunction
 
 function s:RunTests(mode)
-  let config = s:GetConfigForCurrentFile()
-
-  if !empty(config)
-    wa
-    let cmd = get(config, a:mode, config.all)
-
-    if (match(a:mode, 'nearest') > -1) && s:IsOnlySet()
-      let cmd = get(config, substitute(a:mode, 'nearest', 'all', ''), cmd)
-    endif
-
-    let nearest_test_title = get(config, 'test-title-includes-context', 0) ? vigun#TestTitleWithContext() : vigun#TestTitle()
-    let cmd = s:RenderCmd(cmd, nearest_test_title)
-  else
-    if exists('s:last_command') && g:vigun_remember_last_command
-      let cmd = s:last_command
-    else
-      throw "There is no command to run ".expand('%').". Please set one up in g:vigun_mappings"
+  let l:mode = a:mode
+  if len(l:mode) >= 2
+    let l:first = l:mode[0]
+    let l:last = l:mode[-1]
+    if (l:first == '"' || l:first == "'") && l:last == l:first
+      let l:mode = l:mode[1:-2]
     endif
   endif
+  let l:mode = trim(l:mode)
 
-  call s:SendToTmux(cmd)
-  let s:last_command = cmd
+  let l:effective = l:mode
+  if (match(l:mode, 'nearest') > -1) && s:IsOnlySet()
+    let l:effective = substitute(l:mode, 'nearest', 'all', '')
+  endif
+
+  let result = luaeval("require('vigun.config').safe_get(_A)", l:effective)
+  if result.ok
+    wa
+    let cmd = result.val
+    call s:SendToTmux(cmd)
+    let s:last_command = cmd
+  else
+    if exists('s:last_command') && g:vigun_remember_last_command
+      call s:SendToTmux(s:last_command)
+    else
+      let errmsg = substitute(result.val, '^[^:]*:\d\+: ', '', '')
+      throw errmsg
+    endif
+  endif
 endfunction
-
-fun s:RenderCmd(cmd, nearest_test_title)
-  let nearest_test_title = escape(a:nearest_test_title, '()?')
-  let nearest_test_title = substitute(nearest_test_title, '"', '\\\\\\\\\\\\"', 'g')
-  let nearest_test_title = substitute(nearest_test_title, '`', '\\\\\\\\\\\\`', 'g')
-
-  let result = substitute(a:cmd, '#{file}', expand('%'), 'g')
-  let result = substitute(result, '#{line}', line('.'), 'g')
-  let result = substitute(result, '#{nearest_test}', '\\\"'.nearest_test_title.'\\\"', '')
-
-  return result
-endf
-
-fun vigun#TestTitleWithContext()
-  let treesitter_title = luaeval('require("vigun.treesitter").get_test_title_with_context()')
-  return treesitter_title
-endf
-
-fun vigun#TestTitle(...)
-  let line_number = a:0 ? a:1 : line('.')
-  let treesitter_title = luaeval('require("vigun.treesitter").get_test_title(_A)', line_number)
-
-  return treesitter_title
-endf
 
 " Treesitter migration: legacy keyword regex removed
 
@@ -135,13 +140,7 @@ function s:MochaOnly()
   endif
 endfunction
 
-function s:GetConfigForCurrentFile()
-  for cmd in g:vigun_mappings
-    if match(expand("%"), '\v' . cmd.pattern) != -1
-      return cmd
-    endif
-  endfor
-endfunction
+" Legacy mapping lookup removed; configuration is provided via lua in g:vigun_config
 
 function s:ShowSpecIndex()
   let qflist_entries = []
@@ -196,43 +195,27 @@ if !exists('g:vigun_tmux_window_name')
   let g:vigun_tmux_window_name = 'test'
 endif
 
-if !exists('g:vigun_mappings')
-  let g:vigun_mappings = [
-        \ {
-        \   'pattern': '.(spec|test).js$',
-        \   'all': 'node --test #{file}',
-        \   'nearest': 'node --test --test-name-pattern=#{nearest_test} #{file}',
-        \ },
-        \ {
-        \   'pattern': 'Spec.js$',
-        \   'all': './node_modules/.bin/mocha #{file}',
-        \   'nearest': './node_modules/.bin/mocha --fgrep #{nearest_test} #{file}',
-        \   'debug-all': './node_modules/.bin/mocha --inspect-brk --no-timeouts #{file}',
-        \   'debug-nearest': './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
-        \   'test-title-includes-context': 1
-        \ },
-        \ {
-        \   'pattern': '_test.py$',
-        \   'all': 'pytest -s #{file}',
-        \   'nearest': 'pytest -k #{nearest_test} -s #{file}',
-        \   'debug-all': 'pytest -vv -s #{file}',
-        \   'debug-nearest': 'pytest -vv -k #{nearest_test} -s #{file}',
-        \ },
-        \ {
-        \   'pattern': '_spec.rb$',
-        \   'all': 'rspec #{file}',
-        \   'nearest': 'rspec #{file}:#{line}',
-        \ },
-        \ {
-        \   'pattern': '.feature$',
-        \   'all': 'cucumber #{file}',
-        \   'nearest': 'cucumber #{file}:#{line}',
-        \ },
-        \]
-endif
+" Legacy default mappings removed; use g:vigun_config (see README)
 
-com -nargs=1 VigunRun call s:RunTests(<args>)
+com -nargs=1 VigunRun call s:RunTests(<q-args>)
 com VigunShowSpecIndex call s:ShowSpecIndex()
 com VigunToggleOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()
 com VigunToggleTestWindowToPane call s:ToggleTestWindowToPane()
+
+" Helper for building CLI-quoted nearest test title including contexts
+fun vigun#CliQuotedTitleWithContext()
+  let t = luaeval('require("vigun.treesitter").get_test_title_with_context()')
+  let t = escape(t, '()?')
+  let t = substitute(t, '"', '\\\\\\\\\\\\"', 'g')
+  let t = substitute(t, '`', '\\\\\\\\\\\\`', 'g')
+  return '\\"'.t.'\\"'
+endf
+
+" Legacy-safe interpolation helper for config authors
+fun vigun#TestTitleWithContext()
+  let treesitter_title = luaeval('require("vigun.treesitter").get_test_title_with_context()')
+  return treesitter_title
+endf
+
+" vigun#TestTitle exists above

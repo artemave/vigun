@@ -1,8 +1,8 @@
 Before:
-  Save g:vigun_mappings
+  Save g:vigun_config
   let g:vigun_remember_last_command = 0
 After:
-  Restore g:vigun_mappings
+  Restore g:vigun_config
   let g:vigun_remember_last_command = 1
 
 Given javascript (js spec file):
@@ -61,7 +61,7 @@ Given javascript (js spec file):
 Execute (when there is no command for a file name):
   file blahStuff.js
   AssertThrows VigunRun 'all'
-  AssertEqual g:vader_exception, "There is no command to run blahStuff.js. Please set one up in g:vigun_mappings"
+  AssertEqual g:vader_exception, "Vigun: no enabled config for blahStuff.js"
 
 Execute (default run all tests in a file):
   file testSpec.js
@@ -72,70 +72,89 @@ Execute (default run test under cursor):
   file testSpec.js
   normal 14j
   VigunRun 'nearest'
-  AssertEqual './node_modules/.bin/mocha --fgrep \"a thing does not do that\" testSpec.js', GetLastMessage()
+  AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing does not do that' testSpec.js", GetLastMessage()
 
 Execute (default debug test under cursor):
   file testSpec.js
   normal 14j
   VigunRun 'debug-nearest'
-  AssertEqual './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep \"a thing does not do that\" testSpec.js', GetLastMessage()
+  AssertEqual "./node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep 'a thing does not do that' testSpec.js", GetLastMessage()
 
 Execute (test name has quotes inside quotes):
   file testSpec.js
   normal 19j
   VigunRun 'nearest'
-  AssertEqual './node_modules/.bin/mocha --fgrep \"a thing withstands \\\"quotes\\\" within quotes\" testSpec.js', GetLastMessage()
+  AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing withstands \"quotes\" within quotes' testSpec.js", GetLastMessage()
 
 Execute (with a different command):
   file browser/testSpec.js
-  let g:vigun_mappings = [
-        \ {
-        \   'pattern': 'browser/.*Spec.js$',
-        \   'all': 'electron-mocha --renderer #{file}',
-        \   'debug-all': 'electron-mocha --interactive #{file}',
-        \   'debug-nearest': 'electron-mocha --interactive --fgrep #{nearest_test} #{file}',
-        \ },
-        \ {
-        \   'pattern': 'Spec.js$',
-        \   'all': 'mocha #{file}',
-        \   'debug-all': 'mocha --inspect-brk --no-timeouts #{file}',
-        \   'debug-nearest': 'mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
-        \   'test-title-includes-context': 1
-        \ },
-        \]
+  lua << EOF
+  vim.g.vigun_config = {
+    {
+      enabled = function() return vim.fn.expand('%'):match('^browser/.*Spec%.js$') ~= nil end,
+      test_nodes = { 'it', 'xit' },
+      context_nodes = { 'context', 'describe' },
+      commands = {
+        all = function(_) return 'electron-mocha --renderer ' .. vim.fn.expand('%') end,
+        ['debug-all'] = function(_) return 'electron-mocha --interactive ' .. vim.fn.expand('%') end,
+        ['debug-nearest'] = function(info)
+          local quoted = vim.fn.shellescape(info.test_title)
+          return 'electron-mocha --interactive --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+        end,
+      },
+    },
+    {
+      enabled = function() return vim.fn.expand('%'):match('Spec%.js$') ~= nil end,
+      test_nodes = { 'it', 'xit' },
+      context_nodes = { 'context', 'describe' },
+      commands = {
+        all = function(_) return 'mocha ' .. vim.fn.expand('%') end,
+        ['debug-all'] = function(_) return 'mocha --inspect-brk --no-timeouts ' .. vim.fn.expand('%') end,
+        ['debug-nearest'] = function(info)
+          local parts = {}
+          for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+          table.insert(parts, info.test_title)
+          local title = table.concat(parts, ' ')
+          local quoted = vim.fn.shellescape(title)
+          return 'mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+        end,
+      },
+    },
+  }
+  EOF
 
   VigunRun 'all'
   AssertEqual "electron-mocha --renderer browser/testSpec.js", GetLastMessage()
 
   normal 14j
   VigunRun 'debug-nearest'
-  AssertEqual 'electron-mocha --interactive --fgrep \"does not do that\" browser/testSpec.js', GetLastMessage()
+  AssertEqual "electron-mocha --interactive --fgrep 'does not do that' browser/testSpec.js", GetLastMessage()
 
   file testSpec.js
   VigunRun 'all'
   AssertEqual "mocha testSpec.js", GetLastMessage()
 
   VigunRun 'debug-nearest'
-  AssertEqual 'mocha --inspect-brk --no-timeouts --fgrep \"a thing does not do that\" testSpec.js', GetLastMessage()
+  AssertEqual "mocha --inspect-brk --no-timeouts --fgrep 'a thing does not do that' testSpec.js", GetLastMessage()
 
 Execute (test name contains context):
   file testSpec.js
   normal 38j
   VigunRun 'nearest'
-  AssertEqual './node_modules/.bin/mocha --fgrep \"a thing when a thing is false does not do that\" testSpec.js', GetLastMessage()
+  AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing when a thing is false does not do that' testSpec.js", GetLastMessage()
 
 Execute (handles test title on separate line):
   file testSpec.js
   normal 44j
   VigunRun 'nearest'
-  AssertEqual './node_modules/.bin/mocha --fgrep \"a thing handles test title on separate line\" testSpec.js', GetLastMessage()
+  AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing handles test title on separate line' testSpec.js", GetLastMessage()
 
 Execute (handles backticks):
   file testSpec.js
   /backtick
   normal j
   VigunRun 'nearest'
-  AssertEqual './node_modules/.bin/mocha --fgrep \"a thing backticks \\\`also\\\` work\" testSpec.js', GetLastMessage()
+  AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing backticks `also` work' testSpec.js", GetLastMessage()
 
 Given javascript (.only test):
   const {expect} = require('chai')

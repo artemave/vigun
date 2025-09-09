@@ -22,4 +22,4 @@ Execute (test name contains context):
   /broken
   j
   VigunRun 'nearest'
-  AssertEqual './node_modules/.bin/mocha --fgrep \"thing when balls is broken\" testSpec.js', GetLastMessage()
+  AssertEqual "./node_modules/.bin/mocha --fgrep 'thing when balls is broken' testSpec.js", GetLastMessage()
