@@ -40,34 +40,40 @@ end
 
 -- Check if a function name is a test-related function
 local function is_test_function(func_name)
-  local test_functions = {
-    'it', 'describe', 'context', 'test', 'xit',
-    'feature', 'scenario', 'group', 'testWidgets'
-  }
+  local base_name = func_name:match('^([^.]+)') or func_name
 
-  -- Handle method calls like it.only, describe.skip
-  local base_name = func_name:match('^([^.]+)')
-  local name_to_check = base_name or func_name
-
-  for _, test_func in ipairs(test_functions) do
-    if name_to_check == test_func then
-      return true
+  local cfg = require('vigun.config').get_active()
+  if cfg and type(cfg.test_nodes) == 'table' then
+    for _, n in ipairs(cfg.test_nodes) do
+      if base_name == n then return true end
     end
+    return false
+  end
+
+  -- Fallback default set
+  local defaults = { 'it', 'test', 'xit', 'testWidgets' }
+  for _, n in ipairs(defaults) do
+    if base_name == n then return true end
   end
   return false
 end
 
 -- Check if a function name is a context function (describe, context, etc.)
 local function is_context_function(func_name)
-  local context_functions = { 'describe', 'context', 'feature', 'scenario', 'group' }
+  local base_name = func_name:match('^([^.]+)') or func_name
 
-  local base_name = func_name:match('^([^.]+)')
-  local name_to_check = base_name or func_name
-
-  for _, context_func in ipairs(context_functions) do
-    if name_to_check == context_func then
-      return true
+  local cfg = require('vigun.config').get_active()
+  if cfg and type(cfg.context_nodes) == 'table' then
+    for _, n in ipairs(cfg.context_nodes) do
+      if base_name == n then return true end
     end
+    return false
+  end
+
+  -- Fallback default set
+  local defaults = { 'describe', 'context', 'feature', 'scenario', 'group' }
+  for _, n in ipairs(defaults) do
+    if base_name == n then return true end
   end
   return false
 end
@@ -105,7 +111,7 @@ local function get_test_nodes_via_query(bufnr)
           if title_node then
             local title = extract_string_content(title_node, bufnr)
 
-            if is_test_function(func_name) then
+            if is_test_function(func_name) or is_context_function(func_name) then
               local start_row, start_col, end_row, end_col = node:range()
               table.insert(nodes, {
                 node = node,
@@ -159,7 +165,7 @@ local function get_test_nodes_via_query(bufnr)
           if title_node then
             local title = extract_string_content(title_node, bufnr)
 
-            if is_test_function(func_name) then
+            if is_test_function(func_name) or is_context_function(func_name) then
               local start_row, start_col, end_row, end_col = node:range()
               table.insert(nodes, {
                 node = node,
@@ -316,6 +322,27 @@ function M.get_test_title_with_context(line_number)
   end
 end
 
+-- Get only the context titles (outermost -> innermost) for the given line
+function M.get_context_titles(line_number)
+  local target_line = (line_number or vim.fn.line('.')) - 1
+  local bufnr = vim.api.nvim_get_current_buf()
+  local nodes = get_test_nodes_via_query(bufnr)
+
+  local containing_contexts = {}
+  for _, node_info in ipairs(nodes) do
+    if node_info.is_context and node_info.start_row <= target_line and node_info.end_row >= target_line then
+      table.insert(containing_contexts, node_info)
+    end
+  end
+
+  table.sort(containing_contexts, function(a, b) return a.start_row < b.start_row end)
+  local titles = {}
+  for _, ctx in ipairs(containing_contexts) do
+    table.insert(titles, ctx.title)
+  end
+  return titles
+end
+
 -- Check if there are any .only tests in the file
 function M.has_only_tests()
   local bufnr = vim.api.nvim_get_current_buf()
@@ -358,7 +385,7 @@ function M.get_test_nodes()
     })
   end
 
-return test_nodes
+  return test_nodes
 end
 
 -- Compute fold ranges for all tests that are not on the path to the current test
@@ -432,6 +459,15 @@ function M.get_fold_ranges_for_line(line_number)
   end
 
   return ranges
+end
+
+-- Return a CLI-quoted test title with context, matching historical escaping
+function M.get_cli_quoted_test_title_with_context()
+  local title = M.get_test_title_with_context()
+  title = title:gsub("([%(%)%?])", "\\%1")
+  title = title:gsub('"', '\\"')
+  title = title:gsub('`', '\\`')
+  return '\\"' .. title .. '\\"'
 end
 
 return M
