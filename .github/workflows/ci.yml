@@ -18,7 +18,7 @@ jobs:
 
       - name: Download Neovim stable AppImage
         run: |
-          curl -L -o nvim.appimage https://github.com/neovim/neovim/releases/download/stable/nvim.appimage
+          curl -L -o nvim.appimage https://github.com/neovim/neovim/releases/download/stable/nvim-linux-arm64.appimage
           chmod +x nvim.appimage
 
       - name: Extract AppImage
