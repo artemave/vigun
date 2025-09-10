@@ -68,34 +68,28 @@ endfunction
 
 function s:RunTests(mode)
   let l:mode = a:mode
-  if len(l:mode) >= 2
-    let l:first = l:mode[0]
-    let l:last = l:mode[-1]
-    if (l:first == '"' || l:first == "'") && l:last == l:first
-      let l:mode = l:mode[1:-2]
-    endif
-  endif
-  let l:mode = trim(l:mode)
 
   let l:effective = l:mode
   if (match(l:mode, 'nearest') > -1) && s:IsOnlySet()
     let l:effective = substitute(l:mode, 'nearest', 'all', '')
   endif
 
-  let result = luaeval("require('vigun.config').safe_get(_A)", l:effective)
-  if result.ok
-    wa
-    let cmd = result.val
-    call s:SendToTmux(cmd)
-    let s:last_command = cmd
-  else
+  let cmd = luaeval("require('vigun.config').get_command(_A)", l:effective)
+  if type(cmd) != v:t_string || cmd ==# ''
     if exists('s:last_command') && g:vigun_remember_last_command
-      call s:SendToTmux(s:last_command)
+      let cmd = s:last_command
     else
-      let errmsg = substitute(result.val, '^[^:]*:\d\+: ', '', '')
-      throw errmsg
+      if luaeval("require('vigun.config').get_active() == nil")
+        throw 'Vigun: no enabled config for ' . expand('%')
+      else
+        throw "Vigun: no command '" . l:effective . "' for current file"
+      endif
     endif
   endif
+
+  wa
+  call s:SendToTmux(cmd)
+  let s:last_command = cmd
 endfunction
 
 " Treesitter migration: legacy keyword regex removed

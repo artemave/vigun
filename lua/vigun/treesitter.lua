@@ -229,8 +229,7 @@ end
 -- Get test title at a specific line
 function M.get_test_title(line_number)
   local target_line = (line_number or vim.fn.line('.')) - 1
-  local bufnr = vim.api.nvim_get_current_buf()
-  local nodes = get_test_nodes_via_query(bufnr)
+  local nodes = get_test_nodes_via_query(0)
 
   -- Find the test node that contains the target line
   for _, node_info in ipairs(nodes) do
@@ -238,8 +237,6 @@ function M.get_test_title(line_number)
       return node_info.title
     end
   end
-
-  return ''
 end
 
 -- Get test title with context (parent describe/context blocks)

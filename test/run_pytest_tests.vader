@@ -8,5 +8,5 @@ Given python (pytest test file):
 Execute (run test under cursor):
   file pytest_test.py
   normal 4j
-  VigunRun 'nearest'
+  VigunRun nearest
   AssertEqual "pytest -k 'test_skips_duplicate_marks' -s pytest_test.py", GetLastMessage()

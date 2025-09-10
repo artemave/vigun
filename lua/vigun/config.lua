@@ -5,12 +5,6 @@ function M.has_config()
   return type(vim.g.vigun_config) == 'table'
 end
 
--- Internal default configuration used when no user config is provided
--- Use shellescape to return safe single-quoted shell arguments
-local function shell_q(s)
-  return vim.fn.shellescape(s)
-end
-
 function M.default_config()
   return {
     mocha = {
@@ -31,7 +25,7 @@ function M.default_config()
           for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
           table.insert(parts, info.test_title)
           local title = table.concat(parts, ' ')
-          local quoted = shell_q(title)
+          local quoted = vim.fn.shellescape(title)
           return './node_modules/.bin/mocha --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
         end,
         ['debug-nearest'] = function(info)
@@ -39,7 +33,7 @@ function M.default_config()
           for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
           table.insert(parts, info.test_title)
           local title = table.concat(parts, ' ')
-          local quoted = shell_q(title)
+          local quoted = vim.fn.shellescape(title)
           return './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
         end,
       },
@@ -61,14 +55,14 @@ function M.default_config()
           return 'pytest -s ' .. vim.fn.expand('%')
         end,
         nearest = function(info)
-          local quoted = shell_q(info.test_title)
+          local quoted = vim.fn.shellescape(info.test_title)
           return 'pytest -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
         end,
         ['debug-all'] = function(_)
           return 'pytest -vv -s ' .. vim.fn.expand('%')
         end,
         ['debug-nearest'] = function(info)
-          local quoted = shell_q(info.test_title)
+          local quoted = vim.fn.shellescape(info.test_title)
           return 'pytest -vv -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
         end,
       },
@@ -147,18 +141,7 @@ local function merged_config()
   return result
 end
 
-local function normalize_mode(mode)
-  if type(mode) ~= 'string' then return mode end
-  mode = mode:gsub('^%s+', ''):gsub('%s+$', '')
-  if #mode >= 2 then
-    local first = mode:sub(1,1)
-    local last = mode:sub(-1)
-    if (first == last) and (first == '"' or first == "'") then
-      mode = mode:sub(2, -2)
-    end
-  end
-  return mode
-end
+-- Modes are already trimmed/dequoted in Vimscript; no further normalization needed.
 
 -- Return the first enabled config entry for the current buffer
 function M.get_active()
@@ -183,10 +166,11 @@ end
 -- Build the command string for a mode (e.g., 'all', 'nearest', 'debug-nearest')
 -- Returns nil if no matching enabled entry or command (caller may throw)
 function M.get_command(mode)
-  mode = normalize_mode(mode)
+  -- mode is expected to be a simple token like 'all' or 'nearest'
   local entry = M.get_active()
+
   if not entry then
-    error('Vigun: no enabled config for ' .. vim.fn.expand('%'))
+    return nil
   end
 
   -- Lazily-computed semantic info; avoids requiring Treesitter unless needed
@@ -212,21 +196,10 @@ function M.get_command(mode)
   local cmds = entry.commands or {}
   local fn = cmds[mode]
   if type(fn) == 'function' then
-    local ok_cmd, result = pcall(fn, info)
-    if ok_cmd and type(result) == 'string' and #result > 0 then
-      return result
-    end
+    return fn(info)
   end
-
-  error("Vigun: no command '" .. tostring(mode) .. "' for current file")
+  return nil
 end
 
 -- Safe wrapper used from Vimscript to avoid luaeval quoting issues
-function M.safe_get(mode)
-  local ok, val = pcall(function()
-    return M.get_command(mode)
-  end)
-  return { ok = ok, val = val }
-end
-
 return M

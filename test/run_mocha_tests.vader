@@ -60,30 +60,30 @@ Given javascript (js spec file):
 
 Execute (when there is no command for a file name):
   file blahStuff.js
-  AssertThrows VigunRun 'all'
+  AssertThrows VigunRun all
   AssertEqual g:vader_exception, "Vigun: no enabled config for blahStuff.js"
 
 Execute (default run all tests in a file):
   file testSpec.js
-  VigunRun 'all'
+  VigunRun all
   AssertEqual "./node_modules/.bin/mocha testSpec.js", GetLastMessage()
 
 Execute (default run test under cursor):
   file testSpec.js
   normal 14j
-  VigunRun 'nearest'
+  VigunRun nearest
   AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing does not do that' testSpec.js", GetLastMessage()
 
 Execute (default debug test under cursor):
   file testSpec.js
   normal 14j
-  VigunRun 'debug-nearest'
+  VigunRun debug-nearest
   AssertEqual "./node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep 'a thing does not do that' testSpec.js", GetLastMessage()
 
 Execute (test name has quotes inside quotes):
   file testSpec.js
   normal 19j
-  VigunRun 'nearest'
+  VigunRun nearest
   AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing withstands \"quotes\" within quotes' testSpec.js", GetLastMessage()
 
 Execute (with a different command):
@@ -128,37 +128,37 @@ Execute (with a different command):
   }
   EOF
 
-  VigunRun 'all'
+  VigunRun all
   AssertEqual "electron-mocha --renderer browser/testSpec.js", GetLastMessage()
 
   normal 14j
-  VigunRun 'debug-nearest'
+  VigunRun debug-nearest
   AssertEqual "electron-mocha --interactive --fgrep 'does not do that' browser/testSpec.js", GetLastMessage()
 
   file testSpec.js
-  VigunRun 'all'
+  VigunRun all
   AssertEqual "mocha testSpec.js", GetLastMessage()
 
-  VigunRun 'debug-nearest'
+  VigunRun debug-nearest
   AssertEqual "mocha --inspect-brk --no-timeouts --fgrep 'a thing does not do that' testSpec.js", GetLastMessage()
 
 Execute (test name contains context):
   file testSpec.js
   normal 38j
-  VigunRun 'nearest'
+  VigunRun nearest
   AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing when a thing is false does not do that' testSpec.js", GetLastMessage()
 
 Execute (handles test title on separate line):
   file testSpec.js
   normal 44j
-  VigunRun 'nearest'
+  VigunRun nearest
   AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing handles test title on separate line' testSpec.js", GetLastMessage()
 
 Execute (handles backticks):
   file testSpec.js
   /backtick
   normal j
-  VigunRun 'nearest'
+  VigunRun nearest
   AssertEqual "./node_modules/.bin/mocha --fgrep 'a thing backticks `also` work' testSpec.js", GetLastMessage()
 
 Given javascript (.only test):
@@ -177,8 +177,8 @@ Given javascript (.only test):
 Execute (.only uses all instead of nearest):
   file testSpec.js
   normal 8j
-  VigunRun 'nearest'
+  VigunRun nearest
   AssertEqual "./node_modules/.bin/mocha testSpec.js", GetLastMessage()
 
-  VigunRun 'debug-nearest'
+  VigunRun debug-nearest
   AssertEqual './node_modules/.bin/mocha --inspect-brk --no-timeouts testSpec.js', GetLastMessage()

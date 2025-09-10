@@ -27,15 +27,15 @@ Run test(s). Requires an argument that refers to one of the commands from [g:vig
 
 For example, with default mappings, for mocha:
 
-`:VigunRun 'all'` runs all tests in a current file.
+`:VigunRun all` runs all tests in a current file.
 
 <img src="https://user-images.githubusercontent.com/23721/27877373-432ad0e2-61b2-11e7-947e-6c563b2275a0.gif" width=500>
 
-`:VigunRun 'nearest'` runs test under cursor.
+`:VigunRun nearest` runs test under cursor.
 
 <img src="https://user-images.githubusercontent.com/23721/27878507-582bfee0-61b6-11e7-902d-ddcccd952b2a.gif" width=500>
 
-`:VigunRun 'debug-nearest'` starts debug session for test under cursor. By default, for mocha, this will use `--inspect-brk` and copy the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
+`:VigunRun debug-nearest` starts debug session for test under cursor. By default, for mocha, this will use `--inspect-brk` and copy the debug url into OS clipboard. Open new Chrome window/tab and paste it into the address bar.
 
 If invoked from a non-test file, `VigunRun` (with any argument) will attempt to run the last command.
 
@@ -64,9 +64,9 @@ Toggle `.only` for a current test/context/describe.
 ### Example bindings
 
 ```vim script
-au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>t :VigunRun 'all'<cr>
-au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>T :VigunRun 'nearest'<cr>
-au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>d :VigunRun 'debug-nearest'<cr>
+au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>t :VigunRun all<cr>
+au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>T :VigunRun nearest<cr>
+au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>d :VigunRun debug-nearest<cr>
 au FileType {javascript,typescript} nnoremap <Leader>vo :VigunToggleOnly<cr>
 au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIndex<cr>
 ```
@@ -81,7 +81,7 @@ Vigun relies on Treesitter for test discovery and folding. Ensure Neovim has rel
 :TSInstall javascript typescript ruby python
 ```
 
-If a parser is missing, features like `:VigunRun 'nearest'`, `:VigunToggleOnly`, and `:VigunCurrentTestBefore` may not work as expected.
+If a parser is missing, features like `:VigunRun nearest`, `:VigunToggleOnly`, and `:VigunCurrentTestBefore` may not work as expected.
 
 ### g:vigun_mappings
 
@@ -111,7 +111,7 @@ let g:vigun_mappings = [
 
 Each mapping has a `pattern` property that will be tested against the current file name. Note that `pattern` is a regular expression, not a glob. Also note that the match order matters - the block with the first matched `pattern` is selected to run tests.
 
-All other properties represent various ways to run tests. All occurances of `#{file}`, `#{line}` and `#{nearest_test}` in the property value are interpolated based on the current cursor position. You can name the properties whatever you like and then invoke commands via `VigunRun 'your-key'`. For example, let's add watch commands:
+All other properties represent various ways to run tests. All occurances of `#{file}`, `#{line}` and `#{nearest_test}` in the property value are interpolated based on the current cursor position. You can name the properties whatever you like and then invoke commands via `VigunRun your-key`. For example, let's add watch commands:
 
 ```vim script
 " Note: requires ripgrep and entr
@@ -129,13 +129,13 @@ let g:vigun_mappings = [
       \ },
       \]
 
-au FileType {ruby} nnoremap <leader>wt :VigunRun 'watch-all'<cr>
-au FileType {ruby} nnoremap <leader>wT :VigunRun 'watch-nearest'<cr>
+au FileType {ruby} nnoremap <leader>wt :VigunRun watch-all<cr>
+au FileType {ruby} nnoremap <leader>wT :VigunRun watch-nearest<cr>
 ```
 
 #### Magic property names
 
-Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun 'debug-nearest'` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely to be empty.
+Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun debug-nearest` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely to be empty.
 
 ### g:vigun_tmux_window_name
 
