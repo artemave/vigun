@@ -82,11 +82,27 @@ function M.default_config()
         end,
       },
     },
+    minitest_rails = {
+      enabled = function()
+        return vim.fn.expand('%'):match('_test%.rb$') ~= nil
+      end,
+      -- line-number based; Tree-sitter not needed
+      test_nodes = {},
+      context_nodes = {},
+      commands = {
+        all = function(_)
+          return 'rails test ' .. vim.fn.expand('%')
+        end,
+        nearest = function(_)
+          return 'rails test ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+        end,
+      },
+    },
   }
 end
 
 -- Order used when checking which config is active
-M._order = { 'mocha', 'pytest', 'rspec' }
+M._order = { 'mocha', 'pytest', 'rspec', 'minitest_rails' }
 
 -- Deep merge user config into defaults, merging by top-level keys (mocha, pytest, etc.)
 local function is_list(t)

@@ -1,0 +1,24 @@
+Given ruby (ruby minitest rails file):
+  require 'test_helper'
+
+  class ThingTest < ActiveSupport::TestCase
+    test "does this" do
+      assert true
+    end
+
+    test "does that" do
+      assert true
+    end
+  end
+
+Execute (run all tests in a file):
+  file thing_test.rb
+  VigunRun all
+  AssertEqual "rails test thing_test.rb", GetLastMessage()
+
+Execute (run test under cursor):
+  file thing_test.rb
+  normal 5j
+  VigunRun nearest
+  AssertEqual "rails test thing_test.rb:6", GetLastMessage()
+
