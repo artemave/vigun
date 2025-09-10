@@ -101,8 +101,7 @@ function M.default_config()
   }
 end
 
--- Order used when checking which config is active
-M._order = { 'mocha', 'pytest', 'rspec', 'minitest_rails' }
+-- No fixed activation order; exactly one config must match.
 
 -- Deep merge user config into defaults, merging by top-level keys (mocha, pytest, etc.)
 local function is_list(t)
@@ -162,21 +161,20 @@ end
 -- Return the first enabled config entry for the current buffer
 function M.get_active()
   local cfg = merged_config()
-  -- Check in declared order first
-  for _, key in ipairs(M._order) do
-    local entry = cfg[key]
-    if entry and type(entry.enabled) == 'function' and entry.enabled() then
-      return entry
-    end
-  end
-  -- Fallback: check any other keys provided by user
+  local matches = {}
+  local keys = {}
   for key, entry in pairs(cfg) do
-    local known = false
-    for _, k in ipairs(M._order) do if k == key then known = true break end end
-    if not known and type(entry) == 'table' and type(entry.enabled) == 'function' then
-      if entry.enabled() then return entry end
+    if type(entry) == 'table' and type(entry.enabled) == 'function' then
+      local res = entry.enabled()
+      if res then
+        table.insert(matches, entry)
+        table.insert(keys, key)
+      end
     end
   end
+  if #matches == 0 then return nil end
+  if #matches == 1 then return matches[1] end
+  error('Vigun: multiple configs matched: ' .. table.concat(keys, ', '))
 end
 
 -- Build the command string for a mode (e.g., 'all', 'nearest', 'debug-nearest')

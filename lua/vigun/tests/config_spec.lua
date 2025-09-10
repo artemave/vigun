@@ -54,7 +54,7 @@ describe('vigun.config keyed + deep merge', function()
     end)
   end)
 
-  it('keeps known-key priority over unknown keys, but falls back when disabled', function()
+  it('errors on multiple enabled configs; works when one is disabled', function()
     vim.g.vigun_config = {
       custom = {
         enabled = function()
@@ -68,8 +68,11 @@ describe('vigun.config keyed + deep merge', function()
       },
     }
     with_buf('testSpec.js', function()
-      local cmd = Config.get_command('all')
-      assert.equals('./node_modules/.bin/mocha testSpec.js', cmd)
+      local ok, err = pcall(function()
+        Config.get_command('all')
+      end)
+      assert.is_false(ok)
+      assert.truthy(tostring(err):match('multiple configs'))
     end)
 
     vim.g.vigun_config = {
