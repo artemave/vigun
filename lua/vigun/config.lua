@@ -48,8 +48,14 @@ function M.default_config()
       enabled = function()
         return vim.fn.expand('%'):match('_test%.py$') ~= nil
       end,
-      test_nodes = { 'test' },
-      context_nodes = {},
+      -- Predicate: pytest tests are functions starting with test_
+      test_nodes = function(node, name)
+        return node and node:type() == 'function_definition' and type(name) == 'string' and name:match('^test_') ~= nil
+      end,
+      -- Predicate: treat classes as context containers for titles
+      context_nodes = function(node, name)
+        return node and node:type() == 'class_definition'
+      end,
       commands = {
         all = function(_)
           return 'pytest -s ' .. vim.fn.expand('%')

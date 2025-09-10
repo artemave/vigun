@@ -73,14 +73,17 @@ require'nvim-treesitter.configs'.setup {
   },
 }
 
-local function quote_for_msg(s)
-  return vim.fn.shellescape(s)
-end
-
 vim.g.vigun_config = {
   mocha = {
     enabled = function()
-      return vim.fn.expand('%'):match('Spec%.js$') ~= nil
+      local ft = vim.bo.filetype
+      local f = vim.fn.expand('%')
+      if (ft == 'javascript' or ft == 'typescript' or ft == 'javascriptreact' or ft == 'typescriptreact') then
+        if not f:match('%.js$') then
+          return true
+        end
+      end
+      return f:match('Spec%.js$') ~= nil
     end,
     test_nodes = { 'it', 'xit' },
     context_nodes = { 'context', 'describe' },
@@ -91,14 +94,20 @@ vim.g.vigun_config = {
       ['debug-all'] = function(_)
         return './node_modules/.bin/mocha --inspect-brk --no-timeouts ' .. vim.fn.expand('%')
       end,
-      nearest = function(_)
-        local title = vim.fn['vigun#TestTitleWithContext']()
-        local quoted = quote_for_msg(title)
+      nearest = function(info)
+        local parts = {}
+        for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+        table.insert(parts, info.test_title)
+        local title = table.concat(parts, ' ')
+        local quoted = vim.fn.shellescape(title)
         return './node_modules/.bin/mocha --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
       end,
-      ['debug-nearest'] = function(_)
-        local title = vim.fn['vigun#TestTitleWithContext']()
-        local quoted = quote_for_msg(title)
+      ['debug-nearest'] = function(info)
+        local parts = {}
+        for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+        table.insert(parts, info.test_title)
+        local title = table.concat(parts, ' ')
+        local quoted = vim.fn.shellescape(title)
         return './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
       end,
     },
@@ -108,21 +117,25 @@ vim.g.vigun_config = {
     enabled = function()
       return vim.fn.expand('%'):match('_test%.py$') ~= nil
     end,
-    test_nodes = { 'test' },
-    context_nodes = {},
+    test_nodes = function(node, name)
+      return node and node:type() == 'function_definition' and type(name) == 'string' and name:match('^test_') ~= nil
+    end,
+    context_nodes = function(node, _)
+      return node and node:type() == 'class_definition'
+    end,
     commands = {
       all = function(_)
         return 'pytest -s ' .. vim.fn.expand('%')
       end,
       nearest = function(info)
-        local quoted = quote_for_msg(info.test_title)
+        local quoted = vim.fn.shellescape(info.test_title)
         return 'pytest -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
       end,
       ['debug-all'] = function(_)
         return 'pytest -vv -s ' .. vim.fn.expand('%')
       end,
       ['debug-nearest'] = function(info)
-        local quoted = quote_for_msg(info.test_title)
+        local quoted = vim.fn.shellescape(info.test_title)
         return 'pytest -vv -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
       end,
     },

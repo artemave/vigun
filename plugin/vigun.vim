@@ -203,19 +203,4 @@ com VigunToggleOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()
 com VigunToggleTestWindowToPane call s:ToggleTestWindowToPane()
 
-" Helper for building CLI-quoted nearest test title including contexts
-fun vigun#CliQuotedTitleWithContext()
-  let t = luaeval('require("vigun.treesitter").get_test_title_with_context()')
-  let t = escape(t, '()?')
-  let t = substitute(t, '"', '\\\\\\\\\\\\"', 'g')
-  let t = substitute(t, '`', '\\\\\\\\\\\\`', 'g')
-  return '\\"'.t.'\\"'
-endf
-
-" Legacy-safe interpolation helper for config authors
-fun vigun#TestTitleWithContext()
-  let treesitter_title = luaeval('require("vigun.treesitter").get_test_title_with_context()')
-  return treesitter_title
-endf
-
 " vigun#TestTitle exists above

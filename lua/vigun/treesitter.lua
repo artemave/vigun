@@ -1,247 +1,204 @@
 local M = {}
 
--- Lazy query holders
-local js_test_query = nil
-local tsx_test_query = nil
-local ts_test_query = nil
-local python_test_query = nil
-local ruby_test_query = nil
-
-local function ensure_query(lang)
-  if lang == 'javascript' and not js_test_query then
-    js_test_query = vim.treesitter.query.parse('javascript', [[
-      (call_expression) @call
-    ]])
-  elseif lang == 'typescript' and not ts_test_query then
-    ts_test_query = vim.treesitter.query.parse('typescript', [[
-      (call_expression) @call
-    ]])
-  elseif lang == 'javascriptreact' and not tsx_test_query then
-    tsx_test_query = vim.treesitter.query.parse('javascriptreact', [[
-      (call_expression) @call
-    ]])
-  elseif lang == 'typescriptreact' and not tsx_test_query then
-    tsx_test_query = vim.treesitter.query.parse('typescriptreact', [[
-      (call_expression) @call
-    ]])
-  elseif lang == 'python' and not python_test_query then
-    python_test_query = vim.treesitter.query.parse('python', [[
-      (function_definition
-        name: (identifier) @func
-        (#match? @func "^test_")
-      ) @call
-    ]])
-  elseif lang == 'ruby' and not ruby_test_query then
-    ruby_test_query = vim.treesitter.query.parse('ruby', [[
-      (call) @call
-    ]])
-  end
-end
-
 -- Extract test title from a string node
-local function extract_string_content(string_node, bufnr)
+local function extract_string_content(string_node)
   local node_type = string_node:type()
 
   -- For Ruby constants and identifiers, return as-is
   if node_type == 'constant' or node_type == 'identifier' then
-    return vim.treesitter.get_node_text(string_node, bufnr)
+    return vim.treesitter.get_node_text(string_node, 0)
   end
 
   -- For strings, look for string_fragment child which contains the actual text without quotes
   for child in string_node:iter_children() do
     if child:type() == 'string_fragment' then
-      return vim.treesitter.get_node_text(child, bufnr)
+      return vim.treesitter.get_node_text(child, 0)
     end
   end
   -- Fallback: return the whole text and remove quotes
-  local text = vim.treesitter.get_node_text(string_node, bufnr)
+  local text = vim.treesitter.get_node_text(string_node, 0)
   return text:gsub('^["\']', ''):gsub('["\']$', '')
 end
-
--- Check if a function name is a test-related function
-local function is_test_function(func_name)
-  local base_name = func_name:match('^([^.]+)') or func_name
-
-  local cfg = require('vigun.config').get_active()
-  if cfg and type(cfg.test_nodes) == 'table' then
-    for _, n in ipairs(cfg.test_nodes) do
-      if base_name == n then return true end
+-- Name and node-type matchers (lists or predicates)
+local function make_name_matcher(val)
+  if type(val) == 'function' then
+    return function(node, name)
+      return val(node, name) and true or false
     end
-    return false
   end
-
-  -- Fallback default set
-  local defaults = { 'it', 'test', 'xit', 'testWidgets' }
-  for _, n in ipairs(defaults) do
-    if base_name == n then return true end
+  local list = {}
+  if type(val) == 'table' then list = val else list = {} end
+  local set = {}
+  for _, v in ipairs(list) do set[v] = true end
+  return function(_node, name)
+    if not name then return false end
+    return set[name] == true
   end
-  return false
 end
 
--- Check if a function name is a context function (describe, context, etc.)
-local function is_context_function(func_name)
-  local base_name = func_name:match('^([^.]+)') or func_name
+local ALL_NODE_TYPES = {
+  -- call-like
+  'call_expression', -- js/ts
+  'call', 'command', 'command_call', 'method_call', -- ruby
+  'function_call', -- lua
+  -- def/context-like
+  'function_definition', 'method_definition', -- python/ruby (method_definition present in some grammars)
+  'class_definition',
+}
 
-  local cfg = require('vigun.config').get_active()
-  if cfg and type(cfg.context_nodes) == 'table' then
-    for _, n in ipairs(cfg.context_nodes) do
-      if base_name == n then return true end
-    end
-    return false
+local function make_node_type_matcher()
+  local set = {}
+  for _, t in ipairs(ALL_NODE_TYPES) do set[t] = true end
+  return function(node)
+    return set[node:type()] == true
   end
-
-  -- Fallback default set
-  local defaults = { 'describe', 'context', 'feature', 'scenario', 'group' }
-  for _, n in ipairs(defaults) do
-    if base_name == n then return true end
-  end
-  return false
 end
 
--- Get all test and context nodes from the buffer
-local function get_test_nodes_via_query(bufnr)
-  local parser = vim.treesitter.get_parser(bufnr)
+local CALL_NODE_TYPES = {
+  call_expression = true,
+  call = true,
+  command = true,
+  command_call = true,
+  method_call = true,
+  function_call = true,
+}
+
+local function is_call_like(node)
+  return CALL_NODE_TYPES[node:type()] == true
+end
+
+local function extract_call_generic(node)
+  local callee = node:child(0)
+  if not callee then return nil end
+  local func_name = vim.treesitter.get_node_text(callee, 0)
+
+  local title_node = nil
+  local function is_title_candidate(n)
+    if not n then return false end
+    local t = n:type()
+    return t == 'string' or t == 'template_string' or t == 'simple_symbol' or t == 'symbol' or t == 'constant' or t == 'identifier'
+  end
+
+  for i = 1, node:child_count() - 1 do
+    local ch = node:child(i)
+    if not ch then goto continue end
+    if is_title_candidate(ch) then title_node = ch; break end
+    local ct = ch:type()
+    if ct == 'arguments' or ct == 'argument_list' then
+      for j = 0, ch:child_count() - 1 do
+        local arg = ch:child(j)
+        if is_title_candidate(arg) then title_node = arg; break end
+      end
+      if title_node then break end
+    end
+    ::continue::
+  end
+
+  local title = title_node and extract_string_content(title_node) or nil
+  return func_name, title
+end
+
+local function extract_function_or_method_name(node)
+  local name = nil
+  for i = 0, node:child_count() - 1 do
+    local ch = node:child(i)
+    if ch and ch:type() == 'identifier' then
+      name = vim.treesitter.get_node_text(ch, 0)
+      break
+    end
+  end
+  return name
+end
+
+-- Get all test and context nodes by walking the AST
+local function get_test_nodes_via_query()
+  local cfg = require('vigun.config').get_active()
+  local parser = vim.treesitter.get_parser()
   local trees = parser:parse()
   local root = trees[1]:root()
 
+  local test_nodes_val = cfg and cfg.test_nodes or nil
+  local context_nodes_val = cfg and cfg.context_nodes or nil
+
+  local node_types_match = make_node_type_matcher()
+  local test_match = make_name_matcher(test_nodes_val)
+  local context_match = make_name_matcher(context_nodes_val)
+
+  local function base_name(name)
+    if not name then return nil end
+    return (name:match('^([%w_]+)')) or name
+  end
+
   local nodes = {}
 
-  -- Use queries for JavaScript/TypeScript files
-  local filetype = vim.bo[bufnr].filetype
-  if filetype == 'javascript' or filetype == 'typescript' or filetype == 'javascriptreact' or filetype == 'typescriptreact' then
-    ensure_query(filetype)
-    local q = js_test_query
-    if filetype == 'typescript' and ts_test_query then q = ts_test_query end
-    if (filetype == 'javascriptreact' or filetype == 'typescriptreact') and tsx_test_query then q = tsx_test_query end
-    if not q then return {} end
-    for id, node, metadata in q:iter_captures(root, bufnr, 0, -1) do
-      local capture_name = q.captures[id]
-      if capture_name == 'call' then
-        -- Manually extract function name and first string argument
-        local func_node = node:child(0) -- First child is the function
-        local args_node = node:child(1) -- Second child is the arguments
+  local function consider_node(node)
+    if not node_types_match(node) then return end
+    local ntype = node:type()
 
-        if func_node and args_node then
-          local func_name = vim.treesitter.get_node_text(func_node, bufnr)
-
-          -- Look for the first string argument
-          local title_node = nil
-          for child in args_node:iter_children() do
-            if child:type() == 'string' then
-              title_node = child
-              break
-            end
-          end
-
-          if title_node then
-            local title = extract_string_content(title_node, bufnr)
-
-            if is_test_function(func_name) or is_context_function(func_name) then
-              local start_row, start_col, end_row, end_col = node:range()
-              table.insert(nodes, {
-                node = node,
-                func_name = func_name,
-                title = title,
-                start_row = start_row,
-                end_row = end_row,
-                is_context = is_context_function(func_name)
-              })
-            end
-          end
-        end
-      end
+    if is_call_like(node) then
+      local func_name, title = extract_call_generic(node)
+      if not func_name or not title then return end
+      local b = base_name(func_name)
+      local is_ctx = context_match(node, b)
+      local is_test = test_match(node, b)
+      if not (is_ctx or is_test) then return end
+      local srow, _, erow, _ = node:range()
+      table.insert(nodes, {
+        node = node,
+        func_name = func_name,
+        title = title,
+        start_row = srow,
+        end_row = erow,
+        is_context = is_ctx,
+      })
+      return
     end
-  elseif filetype == 'ruby' then
-    ensure_query('ruby')
-    if not ruby_test_query then return {} end
-    -- Use Ruby query for Ruby files
-    for id, node, metadata in ruby_test_query:iter_captures(root, bufnr, 0, -1) do
-      local capture_name = ruby_test_query.captures[id]
-      if capture_name == 'call' then
-        -- Ruby call structure: method [arguments]
-        local method_node = node:child(0) -- First child is the method name
 
-        if method_node then
-          local func_name = vim.treesitter.get_node_text(method_node, bufnr)
-
-          -- Look for string argument (Ruby can have arguments without parentheses)
-          local title_node = nil
-
-          -- Look for argument list or direct string/symbol arguments
-          for i = 1, node:child_count() - 1 do
-            local child = node:child(i)
-            if child then
-              local child_type = child:type()
-              if child_type == 'string' or child_type == 'simple_symbol' or child_type == 'symbol' or child_type == 'constant' or child_type == 'identifier' then
-                title_node = child
-                break
-              elseif child_type == 'argument_list' then
-                -- Look inside argument list for string, symbol, constant, or identifier
-                for j = 0, child:child_count() - 1 do
-                  local arg = child:child(j)
-                  if arg and (arg:type() == 'string' or arg:type() == 'simple_symbol' or arg:type() == 'symbol' or arg:type() == 'constant' or arg:type() == 'identifier') then
-                    title_node = arg
-                    break
-                  end
-                end
-                if title_node then break end
-              end
-            end
-          end
-
-          if title_node then
-            local title = extract_string_content(title_node, bufnr)
-
-            if is_test_function(func_name) or is_context_function(func_name) then
-              local start_row, start_col, end_row, end_col = node:range()
-              table.insert(nodes, {
-                node = node,
-                func_name = func_name,
-                title = title,
-                start_row = start_row,
-                end_row = end_row,
-                is_context = is_context_function(func_name)
-              })
-            end
-          end
-        end
-      end
+    if ntype == 'function_definition' or ntype == 'method_definition' then
+      local name = extract_function_or_method_name(node)
+      if not name then return end
+      local is_test = test_match(node, name)
+      if not is_test then return end
+      local srow, _, erow, _ = node:range()
+      table.insert(nodes, {
+        node = node,
+        func_name = name,
+        title = name,
+        start_row = srow,
+        end_row = erow,
+        is_context = false,
+      })
+      return
     end
-  elseif filetype == 'python' then
-    ensure_query('python')
-    if not python_test_query then return {} end
-    -- Use Python query for Python files
-    for id, node, metadata in python_test_query:iter_captures(root, bufnr, 0, -1) do
-      local capture_name = python_test_query.captures[id]
-      if capture_name == 'call' then
-        local func_node = nil
-        for child_id, child_node, metadata in python_test_query:iter_captures(node, bufnr) do
-          local child_capture = python_test_query.captures[child_id]
-          if child_capture == 'func' then
-            func_node = child_node
-            break
-          end
-        end
 
-        if func_node then
-          local func_name = vim.treesitter.get_node_text(func_node, bufnr)
-          local start_row, start_col, end_row, end_col = node:range()
-          table.insert(nodes, {
-            node = node,
-            func_name = func_name,
-            title = func_name,
-            start_row = start_row,
-            end_row = end_row,
-            is_context = false -- Python test functions aren't context
-          })
-        end
-      end
+    if ntype == 'class_definition' then
+      local name = extract_function_or_method_name(node)
+      if not name then return end
+      local is_ctx = context_match(node, name)
+      if not is_ctx then return end
+      local srow, _, erow, _ = node:range()
+      table.insert(nodes, {
+        node = node,
+        func_name = name,
+        title = name,
+        start_row = srow,
+        end_row = erow,
+        is_context = true,
+      })
+      return
     end
   end
 
-  -- Sort by start position
-  table.sort(nodes, function(a, b) return a.start_row < b.start_row end)
+  local function walk(node)
+    consider_node(node)
+    for i = 0, node:child_count() - 1 do
+      local ch = node:child(i)
+      if ch then walk(ch) end
+    end
+  end
+  walk(root)
 
+  table.sort(nodes, function(a, b) return a.start_row < b.start_row end)
   return nodes
 end
 
@@ -488,15 +445,6 @@ function M.get_fold_ranges_for_line(line_number)
   end
 
   return ranges
-end
-
--- Return a CLI-quoted test title with context, matching historical escaping
-function M.get_cli_quoted_test_title_with_context()
-  local title = M.get_test_title_with_context()
-  title = title:gsub("([%(%)%?])", "\\%1")
-  title = title:gsub('"', '\\"')
-  title = title:gsub('`', '\\`')
-  return '\\"' .. title .. '\\"'
 end
 
 return M

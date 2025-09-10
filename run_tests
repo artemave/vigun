@@ -16,6 +16,8 @@ fi
 
 $cmd -es -u ./test/vimrc -c "Vader! $test_file"
 
-echo "\n== Lua config tests (plenary) =="
+echo ''
+echo "== LUA TESTS (plenary) =="
+echo ''
 
 $cmd -es -u ./test/vimrc -c "PlenaryBustedDirectory lua/vigun/tests/ { sequential = true }"
