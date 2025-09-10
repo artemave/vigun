@@ -84,4 +84,54 @@ describe('vigun.config keyed + deep merge', function()
       assert.equals('custom-all testSpec.js', cmd)
     end)
   end)
+
+  it('merges nested tables without clobbering siblings (commands)', function()
+    vim.g.vigun_config = {
+      mocha = {
+        commands = {
+          nearest = function(_)
+            return 'custom-nearest ' .. vim.fn.expand('%')
+          end,
+        },
+      },
+    }
+    with_buf('testSpec.js', function()
+      local nearest = Config.get_command('nearest')
+      assert.equals('custom-nearest testSpec.js', nearest)
+      local all_cmd = Config.get_command('all')
+      assert.equals('./node_modules/.bin/mocha testSpec.js', all_cmd)
+      local dbg_all = Config.get_command('debug-all')
+      assert.equals('./node_modules/.bin/mocha --inspect-brk --no-timeouts testSpec.js', dbg_all)
+    end)
+  end)
+
+  it('overrides list fields entirely (test_nodes)', function()
+    vim.g.vigun_config = {
+      mocha = {
+        test_nodes = { 'fit' },
+      },
+    }
+    with_buf('testSpec.js', function()
+      local active = Config.get_active()
+      assert.same({ 'fit' }, active.test_nodes)
+      assert.same({ 'context', 'describe' }, active.context_nodes)
+    end)
+  end)
+
+  it('preserves function predicates in merge (pytest)', function()
+    local fn = function() return true end
+    vim.g.vigun_config = {
+      pytest = {
+        test_nodes = fn,
+      },
+    }
+    with_buf('foo_test.py', function()
+      local active = Config.get_active()
+      assert.equals('function', type(active.test_nodes))
+      assert.is_true(active.test_nodes == fn)
+      -- Commands remain intact
+      local all_cmd = Config.get_command('all')
+      assert.equals('pytest -s foo_test.py', all_cmd)
+    end)
+  end)
 end)

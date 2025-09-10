@@ -95,10 +95,25 @@ end
 M._order = { 'mocha', 'pytest', 'rspec' }
 
 -- Deep merge user config into defaults, merging by top-level keys (mocha, pytest, etc.)
+local function is_list(t)
+  if type(t) ~= 'table' then return false end
+  local count = 0
+  for k, _ in pairs(t) do
+    if type(k) ~= 'number' then return false end
+    count = count + 1
+  end
+  -- allow sparse but treat numeric-key-only tables as lists
+  return count > 0
+end
+
 local function deep_merge(dst, src)
   for k, v in pairs(src or {}) do
     if type(v) == 'table' and type(dst[k]) == 'table' then
-      deep_merge(dst[k], v)
+      if is_list(v) or is_list(dst[k]) then
+        dst[k] = vim.deepcopy(v)
+      else
+        deep_merge(dst[k], v)
+      end
     else
       dst[k] = v
     end
