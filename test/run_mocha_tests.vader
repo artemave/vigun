@@ -61,7 +61,7 @@ Given javascript (js spec file):
 Execute (when there is no command for a file name):
   file blahStuff.js
   AssertThrows VigunRun all
-  AssertEqual g:vader_exception, "Vigun: no enabled config for blahStuff.js"
+  Assert match(g:vader_exception, 'Vigun: no enabled config for blahStuff.js')
 
 Execute (default run all tests in a file):
   file testSpec.js

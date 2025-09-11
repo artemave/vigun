@@ -23,11 +23,6 @@ local function normalize_mode(mode)
   return mode
 end
 
-local function echo_msg(msg)
-  -- Print exactly what we intend to compare in tests
-  vim.api.nvim_echo({{msg, ''}}, false, {})
-end
-
 -- Minimal tmux integration (not exercised in tests when dry_run option is set)
 local pane_id = nil
 local function ensure_tmux_window()
@@ -49,7 +44,7 @@ local function send_to_tmux(command)
   local opts = require('vigun.config').get_options()
   if opts.dry_run then
     -- Print exactly what command function returned; no extra escaping
-    vim.api.nvim_echo({{command, ''}}, false, {})
+    vim.api.nvim_echo({{command, ''}}, true, {})
     return
   end
 
@@ -79,6 +74,14 @@ function M.run(mode)
   mode = normalize_mode(mode)
   local emode = effective_mode(mode)
   local cmd = require('vigun.config').get_command(emode)
+  if type(cmd) ~= 'string' or cmd == '' then
+    local active = require('vigun.config').get_active()
+    if active == nil then
+      error('Vigun: no enabled config for ' .. vim.fn.expand('%'))
+    else
+      error("Vigun: no command '" .. emode .. "' for current file")
+    end
+  end
   send_to_tmux(cmd)
   M._last = cmd
   return cmd
@@ -118,6 +121,11 @@ function M.cli(mode)
       error(val)
     end
   end
+end
+
+-- Expose last known tmux pane id for helpers (e.g., join/break)
+function M.get_tmux_pane_id()
+  return pane_id or error('Vigun: no known tmux pane id')
 end
 
 return M
