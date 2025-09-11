@@ -1,13 +1,87 @@
 local M = {}
 
--- Returns true if a user config is present
-function M.has_config()
-  return type(vim.g.vigun_config) == 'table'
+-- Accumulated user configuration provided via setup(); merged into defaults
+M._user_config = nil
+M._user_options = nil
+
+-- Public setup API: merge provided table into accumulated user config.
+-- Lists overwrite; tables deep-merge; scalars overwrite.
+function M.setup(user_cfg)
+  if type(user_cfg) ~= 'table' then
+    error('vigun.config.setup: expected table, got ' .. type(user_cfg))
+  end
+  if M._user_config == nil then
+    M._user_config = {}
+  end
+  if M._user_options == nil then
+    M._user_options = {}
+  end
+  local function is_list(t)
+    if type(t) ~= 'table' then return false end
+    local count = 0
+    for k, _ in pairs(t) do
+      if type(k) ~= 'number' then return false end
+      count = count + 1
+    end
+    return count > 0
+  end
+  local function deep_merge(dst, src)
+    for k, v in pairs(src or {}) do
+      if type(v) == 'table' and type(dst[k]) == 'table' then
+        if is_list(v) or is_list(dst[k]) then
+          dst[k] = vim.deepcopy(v)
+        else
+          deep_merge(dst[k], v)
+        end
+      else
+        dst[k] = v
+      end
+    end
+    return dst
+  end
+  local cfg = vim.deepcopy(user_cfg)
+
+  -- Known top-level options (anything else scalar at top-level will also be treated as option)
+  local option_keys = {
+    tmux_window_name = true,
+    tmux_pane_orientation = true,
+    remember_last_command = true,
+    dry_run = true,
+  }
+
+  -- Extract runners from explicit runners key
+  local runners = cfg.runners
+  if type(runners) == 'table' then
+    cfg.runners = nil
+    if type(M._user_config.runners) ~= 'table' then M._user_config.runners = {} end
+    deep_merge(M._user_config.runners, runners)
+  end
+
+  -- Distribute remaining keys: tables -> runners; scalars -> options
+  for k, v in pairs(cfg) do
+    if type(v) == 'table' then
+      if type(M._user_config.runners) ~= 'table' then M._user_config.runners = {} end
+      if type(M._user_config.runners[k]) ~= 'table' then M._user_config.runners[k] = {} end
+      deep_merge(M._user_config.runners[k], v)
+    else
+      -- scalar or function: treat as option
+      if option_keys[k] or type(v) ~= 'nil' then
+        M._user_options[k] = v
+      end
+    end
+  end
+end
+
+-- Test helper: clear accumulated config
+function M._reset()
+  M._user_config = nil
+  M._user_options = nil
 end
 
 function M.default_config()
   return {
-    mocha = {
+    runners = {
+      mocha = {
       enabled = function()
         return vim.fn.expand('%'):match('Spec%.js$') ~= nil
       end,
@@ -37,8 +111,8 @@ function M.default_config()
           return './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
         end,
       },
-    },
-    pytest = {
+      },
+      pytest = {
       enabled = function()
         return vim.fn.expand('%'):match('_test%.py$') ~= nil
       end,
@@ -66,8 +140,8 @@ function M.default_config()
           return 'pytest -vv -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
         end,
       },
-    },
-    rspec = {
+      },
+      rspec = {
       enabled = function()
         return vim.fn.expand('%'):match('_spec%.rb$') ~= nil
       end,
@@ -81,8 +155,8 @@ function M.default_config()
           return 'rspec ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
         end,
       },
-    },
-    minitest_rails = {
+      },
+      minitest_rails = {
       enabled = function()
         return vim.fn.expand('%'):match('_test%.rb$') ~= nil
       end,
@@ -96,6 +170,7 @@ function M.default_config()
         nearest = function(_)
           return 'rails test ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
         end,
+      },
       },
     },
   }
@@ -132,26 +207,28 @@ end
 
 local function merged_config()
   local defaults = M.default_config()
-  if not M.has_config() then return defaults end
-  local user = vim.g.vigun_config
+  local user = M._user_config
   if type(user) ~= 'table' then return defaults end
-  -- Merge only known keys; also allow new keys but they will be considered later
-  local result = {}
-  -- Start with defaults clone
-  for k, v in pairs(defaults) do
-    if type(v) == 'table' then
-      result[k] = vim.deepcopy(v)
-    else
-      result[k] = v
-    end
-  end
-  -- Merge user entries by key
-  for k, v in pairs(user) do
-    if result[k] ~= nil and type(v) == 'table' then
-      deep_merge(result[k], v)
-    else
-      result[k] = v
-    end
+  -- Merge user entries into defaults
+  local result = vim.deepcopy(defaults)
+  deep_merge(result, user)
+  return result
+end
+
+-- Non-framework options
+function M.default_options()
+  return {
+    tmux_window_name = 'test',
+    tmux_pane_orientation = 'vertical', -- or 'horizontal'
+    remember_last_command = true,
+    dry_run = false,
+  }
+end
+
+function M.get_options()
+  local result = vim.deepcopy(M.default_options())
+  if type(M._user_options) == 'table' then
+    deep_merge(result, M._user_options)
   end
   return result
 end
@@ -163,7 +240,8 @@ function M.get_active()
   local cfg = merged_config()
   local matches = {}
   local keys = {}
-  for key, entry in pairs(cfg) do
+  local runners = (type(cfg.runners) == 'table') and cfg.runners or {}
+  for key, entry in pairs(runners) do
     if type(entry) == 'table' and type(entry.enabled) == 'function' then
       local res = entry.enabled()
       if res then

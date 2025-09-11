@@ -1,9 +1,9 @@
 Before:
-  Save g:vigun_config
-  let g:vigun_remember_last_command = 0
+  lua require('vigun.config').setup({ remember_last_command = false })
 After:
-  Restore g:vigun_config
-  let g:vigun_remember_last_command = 1
+  " Reset plugin config and restore baseline from test/vimrc
+  lua require('vigun.config')._reset()
+  source test/vimrc
 
 Given javascript (js spec file):
   const {expect} = require('chai')
@@ -89,7 +89,7 @@ Execute (test name has quotes inside quotes):
 Execute (with a different command):
   file browser/testSpec.js
   lua << EOF
-  vim.g.vigun_config = {
+  require('vigun.config').setup({
     mocha = {
       -- In this test, only override commands; keep defaults for nodes/enabled
       commands = {
@@ -125,7 +125,7 @@ Execute (with a different command):
         end,
       },
     },
-  }
+  })
   EOF
 
   VigunRun all

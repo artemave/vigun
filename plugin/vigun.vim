@@ -2,7 +2,6 @@ if exists("g:vigun_loaded")
   finish
 endif
 let g:vigun_loaded = 1
-let g:vigun_remember_last_command = 1
 
 fun! s:EnsureTestWindow()
   if exists('s:tmux_pane_id')
@@ -12,15 +11,16 @@ fun! s:EnsureTestWindow()
     endif
   endif
 
-  call system("tmux list-windows -F '#{window_name}' | grep -w ".g:vigun_tmux_window_name)
+  let win_name = luaeval("require('vigun.config').get_options().tmux_window_name")
+  call system("tmux list-windows -F '#{window_name}' | grep -w ".win_name)
   if v:shell_error
-    call system('tmux new-window -d -n '.g:vigun_tmux_window_name)
+    call system('tmux new-window -d -n '.win_name)
   endif
-  let s:tmux_pane_id = system("tmux list-panes -F '#{pane_id}' -t ".g:vigun_tmux_window_name)
+  let s:tmux_pane_id = system("tmux list-panes -F '#{pane_id}' -t ".win_name)
 endf
 
 function s:SendToTmux(command)
-  if exists("g:vigun_dry_run")
+  if luaeval("require('vigun.config').get_options().dry_run")
     let msg = a:command
     " For display only: ensure inner quotes/backticks inside the fgrep payload are escaped
     let pat = '\V--fgrep \"'
@@ -49,7 +49,8 @@ function s:SendToTmux(command)
 
   call s:EnsureTestWindow()
 
-  call system('tmux select-window -t '.g:vigun_tmux_window_name)
+  let win_name = luaeval("require('vigun.config').get_options().tmux_window_name")
+  call system('tmux select-window -t '.win_name)
   if v:shell_error " -> we can't select test window because there isn't any since it's been moved to a pane next to vim
     let vim_pane_id = system("echo -n $TMUX_PANE")
     call system('tmux select-pane -t '.s:tmux_pane_id)
@@ -76,7 +77,7 @@ function s:RunTests(mode)
 
   let cmd = luaeval("require('vigun.config').get_command(_A)", l:effective)
   if type(cmd) != v:t_string || cmd ==# ''
-    if exists('s:last_command') && g:vigun_remember_last_command
+    if exists('s:last_command') && luaeval("require('vigun.config').get_options().remember_last_command")
       let cmd = s:last_command
     else
       if luaeval("require('vigun.config').get_active() == nil")
@@ -134,8 +135,6 @@ function s:MochaOnly()
   endif
 endfunction
 
-" Legacy mapping lookup removed; configuration is provided via lua in g:vigun_config
-
 function s:ShowSpecIndex()
   let qflist_entries = []
 
@@ -169,32 +168,23 @@ fun s:CurrentTestBefore(...)
 endf
 
 fun! s:ToggleTestWindowToPane()
-  if g:vigun_tmux_pane_orientation == 'horizontal'
+  if luaeval("require('vigun.config').get_options().tmux_pane_orientation") ==# 'horizontal'
     let orientation = '-v'
   else
     let orientation = '-h'
   endif
 
-  call system('tmux join-pane -d '.orientation.' -p 30 -s '.g:vigun_tmux_window_name)
+  let win_name = luaeval("require('vigun.config').get_options().tmux_window_name")
+  call system('tmux join-pane -d '.orientation.' -p 30 -s '.win_name)
   if v:shell_error && exists('s:tmux_pane_id')
-    call system('tmux break-pane -d -n '.g:vigun_tmux_window_name.' -s '.s:tmux_pane_id)
+    call system('tmux break-pane -d -n '.win_name.' -s '.s:tmux_pane_id)
   endif
 endf
 
-if !exists('g:vigun_tmux_pane_orientation')
-  let g:vigun_tmux_pane_orientation = 'vertical'
-endif
-
-if !exists('g:vigun_tmux_window_name')
-  let g:vigun_tmux_window_name = 'test'
-endif
-
-" Legacy default mappings removed; use g:vigun_config (see README)
+" Default options are provided via Lua config; see README
 
 com -nargs=1 VigunRun call s:RunTests(<q-args>)
 com VigunShowSpecIndex call s:ShowSpecIndex()
 com VigunToggleOnly call s:MochaOnly()
 com VigunCurrentTestBefore call s:CurrentTestBefore()
 com VigunToggleTestWindowToPane call s:ToggleTestWindowToPane()
-
-" vigun#TestTitle exists above

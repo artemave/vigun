@@ -319,6 +319,7 @@ function M.get_context_titles(line_number)
   end
 
   table.sort(containing_contexts, function(a, b) return a.start_row < b.start_row end)
+
   local titles = {}
   for _, ctx in ipairs(containing_contexts) do
     table.insert(titles, ctx.title)

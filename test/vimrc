@@ -61,8 +61,6 @@ fun GetMatchCount(pattern)
   return str2nr(split(match_count)[0])
 endf
 
-let g:vigun_dry_run=1
-
 " Provide test-time configuration via Lua config API
 lua << EOF
 require'nvim-treesitter.configs'.setup {
@@ -72,8 +70,9 @@ require'nvim-treesitter.configs'.setup {
     enable = true,
   },
 }
-
-vim.g.vigun_config = {
+require('vigun.config').setup({
+  dry_run = true,
+  runners = {
   mocha = {
     enabled = function()
       local ft = vim.bo.filetype
@@ -156,5 +155,5 @@ vim.g.vigun_config = {
       end,
     },
   },
-}
+}})
 EOF

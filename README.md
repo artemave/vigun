@@ -23,7 +23,7 @@ Vigun comes with no mappings, but it does add the following commands:
 
 #### VigunRun
 
-Run test(s). Requires an argument that refers to one of the commands from [g:vigun_mappings](#gvigun_mappings).
+Run test(s). Requires an argument matching a configured command (see Configuration).
 
 For example, with default mappings, for mocha:
 
@@ -83,67 +83,130 @@ Vigun relies on Treesitter for test discovery and folding. Ensure Neovim has rel
 
 If a parser is missing, features like `:VigunRun nearest`, `:VigunToggleOnly`, and `:VigunCurrentTestBefore` may not work as expected.
 
-### g:vigun_mappings
+### Lua setup()
 
-Out of the box, vigun runs mocha, rspec and cucumber. You can add support for new frameworks or modify the default ones:
+Configure frameworks with Lua. Call `setup()` once or multiple times; each call merges into previous configuration (lists overwrite, tables deep‑merge).
 
-```vim script
-let g:vigun_mappings = [
-      \ {
-      \   'pattern': 'Spec.js$',
-      \   'all': './node_modules/.bin/mocha #{file}',
-      \   'nearest': './node_modules/.bin/mocha --fgrep #{nearest_test} #{file}',
-      \   'debug-all': './node_modules/.bin/mocha --inspect-brk --no-timeouts #{file}',
-      \   'debug-nearest': './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep #{nearest_test} #{file}',
-      \ },
-      \ {
-      \   'pattern': '_spec.rb$',
-      \   'all': 'rspec #{file}',
-      \   'nearest': 'rspec #{file}:#{line}',
-      \ },
-      \ {
-      \   'pattern': '.feature$',
-      \   'all': 'cucumber #{file}',
-      \   'nearest': 'cucumber #{file}:#{line}',
-      \ },
-      \]
+Example enabling mocha, rspec, pytest, and minitest_rails under the `runners` key with top‑level options:
+
+```lua
+require('vigun').setup({
+  tmux_window_name = 'test',
+  tmux_pane_orientation = 'vertical',
+  remember_last_command = true,
+  runners = {
+  mocha = {
+    enabled = function()
+      return vim.fn.expand('%'):match('Spec%.js$') ~= nil
+    end,
+    test_nodes = { 'it', 'xit' },
+    context_nodes = { 'context', 'describe' },
+    commands = {
+      all = function(_)
+        return './node_modules/.bin/mocha ' .. vim.fn.expand('%')
+      end,
+      ['debug-all'] = function(_)
+        return './node_modules/.bin/mocha --inspect-brk --no-timeouts ' .. vim.fn.expand('%')
+      end,
+      nearest = function(info)
+        local parts = {}
+        for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+        table.insert(parts, info.test_title)
+        local quoted = vim.fn.shellescape(table.concat(parts, ' '))
+        return './node_modules/.bin/mocha --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+      end,
+      ['debug-nearest'] = function(info)
+        local parts = {}
+        for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+        table.insert(parts, info.test_title)
+        local quoted = vim.fn.shellescape(table.concat(parts, ' '))
+        return './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+      end,
+    },
+  },
+
+  rspec = {
+    enabled = function()
+      return vim.fn.expand('%'):match('_spec%.rb$') ~= nil
+    end,
+    test_nodes = { 'it', 'xit' },
+    context_nodes = { 'describe', 'context' },
+    commands = {
+      all = function(_)
+        return 'rspec ' .. vim.fn.expand('%')
+      end,
+      nearest = function(_)
+        return 'rspec ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+      end,
+    },
+  },
+
+  pytest = {
+    enabled = function()
+      return vim.fn.expand('%'):match('_test%.py$') ~= nil
+    end,
+    test_nodes = function(node, name)
+      return node and node:type() == 'function_definition' and type(name) == 'string' and name:match('^test_') ~= nil
+    end,
+    context_nodes = function(node, _)
+      return node and node:type() == 'class_definition'
+    end,
+    commands = {
+      all = function(_)
+        return 'pytest -s ' .. vim.fn.expand('%')
+      end,
+      nearest = function(info)
+        local quoted = vim.fn.shellescape(info.test_title)
+        return 'pytest -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
+      end,
+      ['debug-all'] = function(_)
+        return 'pytest -vv -s ' .. vim.fn.expand('%')
+      end,
+      ['debug-nearest'] = function(info)
+        local quoted = vim.fn.shellescape(info.test_title)
+        return 'pytest -vv -k ' .. quoted .. ' -s ' .. vim.fn.expand('%')
+      end,
+    },
+  },
+
+  minitest_rails = {
+    enabled = function()
+      return vim.fn.expand('%'):match('_test%.rb$') ~= nil
+    end,
+    commands = {
+      all = function(_)
+        return 'rails test ' .. vim.fn.expand('%')
+      end,
+      nearest = function(_)
+        return 'rails test ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+      end,
+    },
+  },
+}})
 ```
 
-Each mapping has a `pattern` property that will be tested against the current file name. Note that `pattern` is a regular expression, not a glob. Also note that the match order matters - the block with the first matched `pattern` is selected to run tests.
+You can call `setup()` again (e.g., from a project `.exrc`) to override or add commands. Options are top‑level; runners live under `runners`:
 
-All other properties represent various ways to run tests. All occurances of `#{file}`, `#{line}` and `#{nearest_test}` in the property value are interpolated based on the current cursor position. You can name the properties whatever you like and then invoke commands via `VigunRun your-key`. For example, let's add watch commands:
-
-```vim script
-" Note: requires ripgrep and entr
-fun! s:watch(cmd)
-  return "rg --files | entr -r -d -c sh -c 'echo ".escape('"'.a:cmd.'"', '"')." && ".a:cmd."'"
-endf
-
-let g:vigun_mappings = [
-      \ {
-      \   'pattern': '_spec.rb$',
-      \   'all': 'rspec #{file}',
-      \   'nearest': 'rspec #{file}:#{line}',
-      \   'watch-all': s:watch('rspec #{file}'),
-      \   'watch-nearest': s:watch('rspec #{file}:#{line}'),
-      \ },
-      \]
-
-au FileType {ruby} nnoremap <leader>wt :VigunRun watch-all<cr>
-au FileType {ruby} nnoremap <leader>wT :VigunRun watch-nearest<cr>
+```lua
+require('vigun').setup({
+  runners = {
+  mocha = {
+    commands = {
+      all = function(_)
+        return 'electron-mocha --renderer ' .. vim.fn.expand('%')
+      end,
+    },
+  },
+}})
 ```
 
-#### Magic property names
+### Options
 
-Mapping property names are arbitrary. However, there is one name based vigun feature that applies to Mocha (or anything else that makes use of `.only`). If vigun detects that there is `.only` test in the current file, it uses `*all` command instead of `*nearest` (e.g., `VigunRun debug-nearest` will run `debug-all` command instead). This is because mocha applies both `.only` and `--fgrep` and the result is likely to be empty.
+Options are top‑level keys of `setup()`:
 
-### g:vigun_tmux_window_name
-
-Name of the tmux window where tests commands are sent. Defaults to `test`.
-
-### g:vigun_tmux_pane_orientation
-
-Be default, `VigunToggleTestWindowToPane` moves test window in a vertical split to the right of the vim pane. Setting `g:vigun_tmux_pane_orientation = 'horizontal'` will change this to horizontal split at the bottom.
+- `tmux_window_name`: name of the tmux window for tests (default: `test`).
+- `tmux_pane_orientation`: `vertical` or `horizontal` for `:VigunToggleTestWindowToPane` (default: `vertical`).
+- `remember_last_command`: rerun last command if no matching command is found (default: `true`).
 
 ## Running Plugin Tests
 

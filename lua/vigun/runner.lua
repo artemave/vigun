@@ -28,7 +28,7 @@ local function echo_msg(msg)
   vim.api.nvim_echo({{msg, ''}}, false, {})
 end
 
--- Minimal tmux integration (not exercised in tests when g:vigun_dry_run is set)
+-- Minimal tmux integration (not exercised in tests when dry_run option is set)
 local pane_id = nil
 local function ensure_tmux_window()
   if pane_id then
@@ -36,7 +36,7 @@ local function ensure_tmux_window()
     if vim.v.shell_error == 0 then return end
   end
 
-  local win = vim.g.vigun_tmux_window_name or 'test'
+  local win = require('vigun.config').get_options().tmux_window_name or 'test'
   vim.fn.system("tmux list-windows -F '#{window_name}' | grep -w " .. win)
   if vim.v.shell_error ~= 0 then
     vim.fn.system({'tmux', 'new-window', '-d', '-n', win})
@@ -46,7 +46,8 @@ local function ensure_tmux_window()
 end
 
 local function send_to_tmux(command)
-  if vim.g.vigun_dry_run ~= nil then
+  local opts = require('vigun.config').get_options()
+  if opts.dry_run then
     -- Print exactly what command function returned; no extra escaping
     vim.api.nvim_echo({{command, ''}}, false, {})
     return
@@ -54,7 +55,7 @@ local function send_to_tmux(command)
 
   ensure_tmux_window()
 
-  local win = vim.g.vigun_tmux_window_name or 'test'
+  local win = opts.tmux_window_name or 'test'
   vim.fn.system({'tmux', 'select-window', '-t', win})
   if vim.v.shell_error ~= 0 then
     local vim_pane_id = vim.fn.getenv('TMUX_PANE') or ''
@@ -110,7 +111,8 @@ function M.cli(mode)
   end
   local ok, val = pcall(function() return M.run(mode) end)
   if not ok then
-    if vim.g.vigun_remember_last_command and M._last then
+    local opts = require('vigun.config').get_options()
+    if opts.remember_last_command and M._last then
       M.exec(M._last)
     else
       error(val)
