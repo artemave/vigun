@@ -43,7 +43,7 @@ local ALL_NODE_TYPES = {
   'function_call', -- lua
   -- def/context-like
   'function_definition', 'method_definition', -- python/ruby (method_definition present in some grammars)
-  'class_definition',
+  'class_definition', 'class', -- ruby uses 'class'
 }
 
 local function make_node_type_matcher()
@@ -102,7 +102,7 @@ local function extract_function_or_method_name(node)
   local name = nil
   for i = 0, node:child_count() - 1 do
     local ch = node:child(i)
-    if ch and ch:type() == 'identifier' then
+    if ch and (ch:type() == 'identifier' or ch:type() == 'constant') then
       name = vim.treesitter.get_node_text(ch, 0)
       break
     end
@@ -171,7 +171,7 @@ local function get_test_nodes_via_query()
       return
     end
 
-    if ntype == 'class_definition' then
+    if ntype == 'class_definition' or ntype == 'class' then
       local name = extract_function_or_method_name(node)
       if not name then return end
       local is_ctx = context_match(node, name)

@@ -1,0 +1,22 @@
+Given ruby (ruby minitest rails file):
+  require 'test_helper'
+
+  class ThingTest < ActiveSupport::TestCase
+    test "does this" do
+      assert true
+    end
+
+    test "does that" do
+      assert true
+    end
+  end
+
+Execute:
+  file thing_test.rb
+  VigunShowSpecIndex
+  AssertEqual GetQFList(), [
+    \ {'lnum': 3, 'text': 'ThingTest'},
+    \ {'lnum': 4, 'text': '  does this'},
+    \ {'lnum': 8, 'text': '  does that'},
+  \]
+

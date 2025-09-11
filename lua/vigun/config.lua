@@ -160,9 +160,12 @@ function M.default_config()
       enabled = function()
         return vim.fn.expand('%'):match('_test%.rb$') ~= nil
       end,
-      -- line-number based; Tree-sitter not needed
-      test_nodes = {},
-      context_nodes = {},
+      -- Use Treesitter for spec index: `test "..."` inside a test class
+      test_nodes = { 'test' },
+      -- Treat Ruby class definitions as contexts
+      context_nodes = function(node, _)
+        return node and (node:type() == 'class_definition' or node:type() == 'class')
+      end,
       commands = {
         all = function(_)
           return 'rails test ' .. vim.fn.expand('%')
