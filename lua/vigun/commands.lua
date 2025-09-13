@@ -75,15 +75,17 @@ function M.toggle_test_window_to_pane()
     orientation = '-h'
   end
   local win = opts.tmux_window_name
-  vim.fn.system('tmux join-pane -d ' .. orientation .. ' -p 30 -s ' .. win)
+
+  local pane_id = require('vigun.runner').get_tmux_pane_id()
+  vim.fn.system('tmux join-pane -d ' .. orientation .. ' -l 30 -s ' .. win)
+
+  -- error means there was no pane, and then can only mean that it's already inside nvim window,
+  -- so we are at the "break pane back into window" part of the toggle
   if vim.v.shell_error ~= 0 then
-    -- Try to break pane back to its own window using last known pane id
-    local pane_id = (require('vigun.runner').get_tmux_pane_id or function() return '' end)()
-    if pane_id and #pane_id > 0 then
-      vim.fn.system('tmux break-pane -d -n ' .. win .. ' -s ' .. pane_id)
-    end
+    vim.fn.system('tmux break-pane -d -n ' .. win .. ' -s ' .. pane_id_to_break_out)
+  else
+    pane_id_to_break_out = pane_id
   end
 end
 
 return M
-
