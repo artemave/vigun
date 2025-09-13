@@ -11,7 +11,7 @@ create('VigunRun', function(opts)
     -- Re-throw as a Vimscript error without Lua stack prefixes
     vim.cmd('throw ' .. vim.fn.string(err))
   end
-end, { nargs = 1, complete = function() return { 'all', 'nearest', 'debug-all', 'debug-nearest' } end })
+end, { nargs = 1 })
 
 create('VigunShowSpecIndex', function()
   require('vigun.commands').show_spec_index()

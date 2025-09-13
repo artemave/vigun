@@ -21,5 +21,8 @@ jobs:
           curl -L -o nvim-linux-x86_64.tar.gz https://github.com/neovim/neovim/releases/download/stable/nvim-linux-x86_64.tar.gz
           tar xzf nvim-linux-x86_64.tar.gz
 
-      - name: Run tests
-        run: ./run_tests
+      - name: Run Vader tests
+        run: ./run_vader_test
+
+      - name: Run Lua tests
+        run: ./run_lua_tests

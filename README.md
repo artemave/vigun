@@ -208,8 +208,54 @@ Options are top‑level keys of `setup()`:
 - `tmux_pane_orientation`: `vertical` or `horizontal` for `:VigunToggleTestWindowToPane` (default: `vertical`).
 - `remember_last_command`: rerun last command if no matching command is found (default: `true`).
 
+### on_result callback
+
+Attach a per‑runner `on_result` to react to a finished run.
+
+`on_result` takes an `info` argument with the following fields:
+  - `command`: exact command sent to tmux
+  - `mode`: run mode, e.g., `all`, `nearest`
+  - `file`: current buffer filename at start
+  - `output`: output of the command
+  - `started_at`, `ended_at`: timestamps
+
+Example: basic diagnostics from failures
+
+```lua
+require('vigun').setup({
+  runners = {
+    rspec = {
+      -- ... other rspec config ...
+      on_result = function(info)
+        local ns = vim.api.nvim_create_namespace('vigun.tests')
+        vim.diagnostic.reset(ns)
+        local by_buf = {}
+        for path, line, msg in info.output:gmatch("([%./%w%-%_%/]+):(%d+):%s*(.-)\n") do
+          local bufnr = vim.fn.bufnr(vim.fn.fnamemodify(path, ':p'), true)
+          by_buf[bufnr] = by_buf[bufnr] or {}
+          table.insert(by_buf[bufnr], {
+            lnum = tonumber(line) - 1,
+            col = 0,
+            message = msg ~= '' and msg or 'Test failure',
+            severity = vim.diagnostic.severity.ERROR,
+            source = 'vigun',
+          })
+        end
+        for bufnr, items in pairs(by_buf) do
+          vim.diagnostic.set(ns, bufnr, items, { underline = true, virtual_text = true })
+        end
+      end,
+    },
+  },
+})
+```
+
+You can adapt the parser to your runner’s format (RSpec, Minitest, PyTest, etc.) or populate quickfix/loclist instead of diagnostics.
+
 ## Running Plugin Tests
 
-```
-./run_tests
-```
+- `./run_vader_test` — run Vader specs.
+- `./run_vader_test test/run_ruby_tests.vader` — run a specific Vader file.
+- `./run_vader_test 'test/regressions/*.vader'` — run a subset via glob.
+- `./run_lua_tests` — run Lua tests (Plenary/Busted).
+- `./run_tests` — run both suites in sequence.

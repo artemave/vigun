@@ -142,38 +142,38 @@ function M.default_config()
       },
       },
       rspec = {
-      enabled = function()
-        return vim.fn.expand('%'):match('_spec%.rb$') ~= nil
-      end,
-      test_nodes = { 'it', 'xit' },
-      context_nodes = { 'describe', 'context' },
-      commands = {
-        all = function(_)
-          return 'rspec ' .. vim.fn.expand('%')
+        enabled = function()
+          return vim.fn.expand('%'):match('_spec%.rb$') ~= nil
         end,
-        nearest = function(_)
-          return 'rspec ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
-        end,
-      },
+        test_nodes = { 'it', 'xit' },
+        context_nodes = { 'describe', 'context' },
+        commands = {
+          all = function(_)
+            return 'rspec ' .. vim.fn.expand('%')
+          end,
+          nearest = function(_)
+            return 'rspec ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+          end,
+        },
       },
       minitest_rails = {
-      enabled = function()
-        return vim.fn.expand('%'):match('_test%.rb$') ~= nil
-      end,
-      -- Use Treesitter for spec index: `test "..."` inside a test class
-      test_nodes = { 'test' },
-      -- Treat Ruby class definitions as contexts
-      context_nodes = function(node, _)
-        return node and (node:type() == 'class_definition' or node:type() == 'class')
-      end,
-      commands = {
-        all = function(_)
-          return 'rails test ' .. vim.fn.expand('%')
+        enabled = function()
+          return vim.fn.expand('%'):match('_test%.rb$') ~= nil
         end,
-        nearest = function(_)
-          return 'rails test ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+        -- Use Treesitter for spec index: `test "..."` inside a test class
+        test_nodes = { 'test' },
+        -- Treat Ruby class definitions as contexts
+        context_nodes = function(node, _)
+          return node and (node:type() == 'class_definition' or node:type() == 'class')
         end,
-      },
+        commands = {
+          all = function(_)
+            return 'rails test ' .. vim.fn.expand('%')
+          end,
+          nearest = function(_)
+            return 'rails test ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
+          end,
+        },
       },
     },
   }

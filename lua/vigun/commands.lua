@@ -74,7 +74,7 @@ function M.toggle_test_window_to_pane()
   else
     orientation = '-h'
   end
-  local win = opts.tmux_window_name or 'test'
+  local win = opts.tmux_window_name
   vim.fn.system('tmux join-pane -d ' .. orientation .. ' -p 30 -s ' .. win)
   if vim.v.shell_error ~= 0 then
     -- Try to break pane back to its own window using last known pane id

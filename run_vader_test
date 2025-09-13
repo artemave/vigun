@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+set -e
+
+test_file=${1:-test/**/*.vader}
+
+if [ -z "$CI" ]; then
+  cmd=nvim
+else
+  if [ -x ./nvim-linux-x86_64/bin/nvim ]; then
+    cmd=./nvim-linux-x86_64/bin/nvim
+  else
+    cmd=nvim
+  fi
+fi
+
+$cmd -es -u ./test/vimrc -c "Vader! $test_file"
+
