@@ -203,8 +203,6 @@ function M.run(mode)
   if not active.on_result or opts.dry_run then
     send_to_tmux(cmd)
     M._last = cmd
-    -- TODO: stop returning cmd
-    return cmd
   end
 
   -- Resolve pane id once and use it across async callbacks
@@ -236,24 +234,15 @@ function M.run(mode)
       })
     end)
   end)
-
-  return cmd
-end
-
-function M.exec(cmd)
-  send_to_tmux(cmd)
-  M._last = cmd
-  return cmd
 end
 
 -- CLI entry used by :VigunRun <mode>
 function M.cli(mode)
-  -- TODO: just call M.run (also, it doesn't need to return anything)
   local ok, val = pcall(function() return M.run(mode) end)
   if not ok then
     local opts = require('vigun.config').get_options()
     if opts.remember_last_command and M._last then
-      M.exec(M._last)
+      send_to_tmux(M._last)
     else
       error(val)
     end
