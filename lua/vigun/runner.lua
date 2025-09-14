@@ -1,6 +1,5 @@
 local M = {}
 M._last = nil
-M._run_id = 0
 M._poll_timer = nil
 -- Cache the pane id so it stays stable when the test pane
 -- is moved into/out of the Vim window and back.
@@ -163,8 +162,6 @@ local function run_until_processes_done(pane_id_arg, before_snapshot, on_done)
   local timer = vim.loop.new_timer()
   M._poll_timer = timer
 
-  -- TODO: get rid of run_id and just compare _poll_timer with local timer
-  local run_id = M._run_id
   local started = vim.loop.now()
   -- TODO: add timeout to config
   local TIMEOUT_MS = 30000
@@ -175,21 +172,22 @@ local function run_until_processes_done(pane_id_arg, before_snapshot, on_done)
   local pane_pid = get_pane_pid(pane_id_arg)
 
   timer:start(0, INTERVAL_MS, function()
-    if run_id ~= M._run_id then
-      timer:stop(); timer:close(); return
-    end
-    list_descendants_async(pane_pid, function(desc)
-      if run_id ~= M._run_id then return end
+    list_descendants_async(pane_pid, function(descendants)
+      if timer ~= M._poll_timer then return end
+
       local now = vim.loop.now()
       local timed_out = (now - started) >= TIMEOUT_MS
-      local count = #desc
+      local count = #descendants
       if count > 0 then
         seen_busy = true
       end
       if (seen_busy and count == 0) or timed_out then
-        timer:stop(); timer:close(); M._poll_timer = nil
+        timer:stop()
+        timer:close()
+
         capture_pane_async(pane_id_arg, function(snap)
-          if run_id ~= M._run_id then return end
+          if timer ~= M._poll_timer then return end
+
           on_done(snap)
         end)
       end
@@ -227,10 +225,6 @@ function M.run(mode)
 
   -- Prepare result context
   local file = vim.fn.expand('%')
-
-  -- Bump run id and cancel any existing poll timer
-  M._run_id = M._run_id + 1
-  local this_run = M._run_id
 
   local started_at = os.time()
 
