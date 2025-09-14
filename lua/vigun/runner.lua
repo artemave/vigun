@@ -16,17 +16,6 @@ local function effective_mode(mode)
   return mode
 end
 
-local function normalize_mode(mode)
-  if type(mode) == 'string' and #mode >= 2 then
-    local first = mode:sub(1,1)
-    local last = mode:sub(-1)
-    if (first == last) and (first == '"' or first == "'") then
-      mode = mode:sub(2, -2)
-    end
-  end
-  return mode
-end
-
 local function send_to_tmux(command)
   local opts = require('vigun.config').get_options()
   if opts.dry_run then
@@ -196,7 +185,6 @@ local function run_until_processes_done(pane_id_arg, before_snapshot, on_done)
 end
 
 function M.run(mode)
-  mode = normalize_mode(mode)
   local emode = effective_mode(mode)
   -- TODO: get_command from get_active
   local cmd = require('vigun.config').get_command(emode)
