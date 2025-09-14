@@ -262,9 +262,9 @@ end
 -- Returns nil if no matching enabled entry or command (caller may throw)
 function M.get_command(mode)
   -- mode is expected to be a simple token like 'all' or 'nearest'
-  local entry = M.get_active()
+  local config = M.get_active()
 
-  if not entry then
+  if not config then
     return nil
   end
 
@@ -288,7 +288,7 @@ function M.get_command(mode)
   end
   local info = make_info()
 
-  local cmds = entry.commands or {}
+  local cmds = config.commands or {}
   local fn = cmds[mode]
   if type(fn) == 'function' then
     return fn(info)

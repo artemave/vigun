@@ -112,13 +112,13 @@ end
 
 -- Get all test and context nodes by walking the AST
 local function get_test_nodes_via_query()
-  local cfg = require('vigun.config').get_active()
+  local config = require('vigun.config').get_active()
   local parser = vim.treesitter.get_parser()
   local trees = parser:parse()
   local root = trees[1]:root()
 
-  local test_nodes_val = cfg and cfg.test_nodes or nil
-  local context_nodes_val = cfg and cfg.context_nodes or nil
+  local test_nodes_val = config.test_nodes or nil
+  local context_nodes_val = config.context_nodes or nil
 
   local node_types_match = make_node_type_matcher()
   local test_match = make_name_matcher(test_nodes_val)

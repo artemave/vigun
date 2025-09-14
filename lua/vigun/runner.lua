@@ -186,11 +186,10 @@ end
 
 function M.run(mode)
   local emode = effective_mode(mode)
-  -- TODO: get_command from get_active
   local cmd = require('vigun.config').get_command(emode)
-  local active = require('vigun.config').get_active()
+  local config = require('vigun.config').get_active()
 
-  if not active then
+  if not config then
     error('Vigun: no enabled config for ' .. vim.fn.expand('%'))
   end
 
@@ -200,7 +199,7 @@ function M.run(mode)
 
   local opts = require('vigun.config').get_options()
 
-  if not active.on_result or opts.dry_run then
+  if not config.on_result or opts.dry_run then
     send_to_tmux(cmd)
     M._last = cmd
   end
@@ -224,7 +223,7 @@ function M.run(mode)
 
     -- Run user callback on main loop to avoid fast-event API restrictions
     vim.schedule(function()
-      active.on_result({
+      config.on_result({
         command = cmd,
         mode = mode,
         file = file,
