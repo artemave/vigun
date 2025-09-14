@@ -260,14 +260,6 @@ end
 
 -- CLI entry used by :VigunRun <mode>
 function M.cli(mode)
-  -- TODO: rm this
-  if type(mode) == 'string' and #mode >= 2 then
-    local first = mode:sub(1,1)
-    local last = mode:sub(-1)
-    if (first == last) and (first == '"' or first == "'") then
-      mode = mode:sub(2, -2)
-    end
-  end
   -- TODO: just call M.run (also, it doesn't need to return anything)
   local ok, val = pcall(function() return M.run(mode) end)
   if not ok then
