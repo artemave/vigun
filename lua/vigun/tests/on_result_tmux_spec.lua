@@ -10,7 +10,7 @@ local function with_buf(name, fn)
 end
 
 describe('vigun.runner on_result with real tmux', function()
-  if vim.fn.executable('tmux') ~= 1 or (vim.fn.getenv('TMUX') == nil or vim.fn.getenv('TMUX') == '') then
+  if vim.fn.executable('tmux') ~= 1 or vim.fn.getenv('TMUX') == vim.NIL then
     pending('tmux not available or not running inside tmux')
     return
   end
