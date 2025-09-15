@@ -41,8 +41,6 @@ Fold everything, except current test and all relevant setup code (e.g. before/be
 
 Toggle `.only` for a current test/context/describe.
 
-<img src="https://user-images.githubusercontent.com/23721/27878536-7ba3e8c4-61b6-11e7-9254-c0f4bb569f68.gif" width=500>
-
 ### Example bindings
 
 Example bindings for user‑defined modes (here: `file`, `focus`, `debug-focus`):
