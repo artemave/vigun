@@ -7,10 +7,12 @@ Vim plugin to run tests in a separate tmux window.
 
 ## Installation
 
-Use [a plugin manager](https://github.com/junegunn/vim-plug):
+Using [lazy](https://lazy.folke.io/):
 
-```vim script
-Plug 'artemave/vigun'
+```lua
+require("lazy").setup({
+  { "artemave/vigun" }
+})
 ```
 
 ## Usage
@@ -25,19 +27,15 @@ If invoked from a non‑test file, `:VigunRun <mode>` will attempt to run the la
 
 #### VigunToggleTestWindowToPane
 
-Move tmux test window into a pane of the current vim window. And vice versa.
+Join tmux test window as a into the current vim window. Split out into a separate window if it's already a pane.
 
 #### VigunShowSpecIndex
 
 Open quickfix window to quickly navigate between the tests.
 
-<img src="https://user-images.githubusercontent.com/23721/27877502-ce1cbde6-61b2-11e7-93f6-3115dc339266.gif" width=500>
-
 #### VigunCurrentTestBefore
 
 Fold everything, except current test and all relevant setup code (e.g. before/beforeEach blocks).
-
-<img src="https://user-images.githubusercontent.com/23721/27878467-405c959a-61b6-11e7-9048-96f8d5e43011.gif" width=500>
 
 #### VigunToggleOnly
 
@@ -53,8 +51,6 @@ Example bindings for user‑defined modes (here: `file`, `focus`, `debug-focus`)
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>t :VigunRun file<cr>
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>T :VigunRun focus<cr>
 au FileType {ruby,javascript,typescript,cucumber} nnoremap <leader>d :VigunRun debug-focus<cr>
-au FileType {javascript,typescript} nnoremap <Leader>vo :VigunToggleOnly<cr>
-au FileType {ruby,javascript,typescript,go} nnoremap <leader>vi :VigunShowSpecIndex<cr>
 ```
 
 ## Configuration
@@ -67,11 +63,9 @@ Vigun relies on Treesitter for test discovery and folding. Ensure Neovim has rel
 :TSInstall javascript typescript ruby python
 ```
 
-If a parser is missing, features like running the test under cursor, `:VigunToggleOnly`, and `:VigunCurrentTestBefore` may not work as expected.
-
 ### Lua setup()
 
-Configure frameworks with Lua. Call `setup()` once or multiple times; each call merges into previous configuration (lists overwrite, tables deep‑merge).
+Configure frameworks with Lua. Call `setup()` once or multiple times; each call merges into previous configuration.
 
 Example enabling rspec, pytest, and minitest_rails under the `runners` key with top‑level options. Command names are arbitrary and user‑defined:
 
@@ -174,7 +168,7 @@ Attach a per‑runner `on_result` to react to a finished run.
   - `output`: output of the command
   - `started_at`, `ended_at`: timestamps
 
-Example: basic diagnostics from failures
+Example: populate diagnostics from failures
 
 ```lua
 require('vigun').setup({
