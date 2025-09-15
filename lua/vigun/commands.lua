@@ -77,7 +77,16 @@ function M.toggle_test_window_to_pane()
   local win = opts.tmux_window_name
 
   local pane_id = require('vigun.runner').get_tmux_pane_id()
-  vim.fn.system('tmux join-pane -d ' .. orientation .. ' -l 30 -s ' .. win)
+
+  -- Determine size as one-third of available dimension
+  -- For side-by-side panes (-h), use window width; for stacked panes (-v), use window height
+  local dim_query = (orientation == '-h') and '#{window_width}' or '#{window_height}'
+  local dim_out = vim.fn.system({ 'tmux', 'display-message', '-p', dim_query })
+  local total = tonumber(tostring(dim_out):match('%d+'))
+  local size = math.floor(total / 3)
+  if size < 20 then size = 20 end
+
+  vim.fn.system({ 'tmux', 'join-pane', '-d', orientation, '-l', tostring(size), '-s', win })
 
   -- error means there was no pane, and then can only mean that it's already inside nvim window,
   -- so we are at the "break pane back into window" part of the toggle
