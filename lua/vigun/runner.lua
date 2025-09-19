@@ -28,6 +28,8 @@ local function send_to_tmux(command)
   local win = opts.tmux_window_name
   vim.fn.system({'tmux', 'select-window', '-t', win})
 
+  -- error means the test window has been joined into the nvim window as pane
+  -- and so we need to send the command to the pane instead
   if vim.v.shell_error ~= 0 then
     local vim_pane_id = vim.fn.getenv('TMUX_PANE')
     vim.fn.system({'tmux', 'select-pane', '-t', tmux_pane_id})
@@ -46,59 +48,76 @@ end
 
 -- Helpers -------------------------------------------------------------------
 
-local HISTORY_LINES = 32768
-local ANCHOR_LINES = 32
-local FALLBACK_TAIL_LINES = 800
-
-local function slice_new_output(before, after)
-  -- Build anchor from last K lines of before
-  local blines = {}
-  for line in (before .. '\n'):gmatch('([^\n]*)\n') do
-    table.insert(blines, line)
-  end
-  local start_idx = math.max(1, #blines - ANCHOR_LINES + 1)
-  local anchor = table.concat({ unpack(blines, start_idx, #blines) }, '\n')
-  if #anchor > 0 then
-    -- find last occurrence of anchor in after
-    local p = 0
-    local lastp = nil
-    while true do
-      p = after:find(anchor, p + 1, true)
-      if not p then break end
-      lastp = p
-    end
-    if lastp then
-      local slice_start = lastp + #anchor
-      local out = after:sub(slice_start)
-      if out and #out > 0 then return out end
-    end
-  end
-  -- Fallback: last N lines of after
-  local alines = {}
-  for line in (after .. '\n'):gmatch('([^\n]*)\n') do
-    table.insert(alines, line)
-  end
-  local nstart = math.max(1, #alines - FALLBACK_TAIL_LINES + 1)
-  return table.concat({ unpack(alines, nstart, #alines) }, '\n')
+local function count_lines(s)
+  local n = 0
+  for _ in (s .. '\n'):gmatch('([^\n]*)\n') do n = n + 1 end
+  return n
 end
 
-local function capture_pane_sync()
-  local id = M.get_tmux_pane_id()
-  local out = vim.fn.system({ 'tmux', 'capture-pane', '-pJ', '-t', id, '-S', '-' .. tostring(HISTORY_LINES) })
-  return out
+-- Remove trailing empty lines from captured tmux output
+local function trim_trailing_empty_lines(s)
+  local t = {}
+  for line in (s .. '\n'):gmatch('([^\n]*)\n') do table.insert(t, line) end
+  while #t > 0 and t[#t] == '' do table.remove(t, #t) end
+  return table.concat(t, '\n')
 end
 
-local function capture_pane_async(id, cb)
-  vim.system({ 'tmux', 'capture-pane', '-pJ', '-t', id, '-S', '-' .. tostring(HISTORY_LINES) }, { text = true }, function(obj)
-    cb(obj.stdout or '')
+local function suffix_after(before, after)
+  local max_i = math.min(#before, #after)
+  local i = 1
+  while i <= max_i do
+    if before:byte(i) ~= after:byte(i) then break end
+    i = i + 1
+  end
+  return after:sub(i)
+end
+
+local function parse_history_count(raw)
+  return tonumber((tostring(raw or '')):match('%d+')) or 0
+end
+
+local function make_buffer_snapshot(hist, visible_output)
+  local trimmed = trim_trailing_empty_lines(visible_output or '')
+  local visible = count_lines(trimmed)
+  return {
+    history = hist,
+    visible = visible,
+    total = hist + visible,
+  }
+end
+
+-- Return totals combining tmux history and visible buffer lines
+local function get_total_buffer_lines(pane)
+  local out_hist = vim.fn.system({ 'tmux', 'display-message', '-p', '-t', pane, '#{history_size}' })
+  local hist = parse_history_count(out_hist)
+
+  local visible = vim.fn.system({ 'tmux', 'capture-pane', '-pJ', '-t', pane })
+  return make_buffer_snapshot(hist, visible)
+end
+
+local function get_total_buffer_lines_async(pane, cb)
+  vim.system({ 'tmux', 'display-message', '-p', '-t', pane, '#{history_size}' }, { text = true }, function(obj1)
+    local hist = parse_history_count(obj1.stdout)
+
+    vim.system({ 'tmux', 'capture-pane', '-pJ', '-t', pane }, { text = true }, function(obj2)
+      cb(make_buffer_snapshot(hist, obj2.stdout))
+    end)
   end)
 end
 
--- Polling helpers: detect completion by watching child processes of the pane shell
+local function capture_pane_range_async(id, start_line, end_line, cb)
+  vim.system(
+    { 'tmux', 'capture-pane', '-pJ', '-t', id, '-S', tostring(start_line), '-E', tostring(end_line) },
+    { text = true },
+    function(obj)
+      cb(trim_trailing_empty_lines(obj.stdout))
+    end
+  )
+end
+
 local function list_descendants_async(root_pid, cb)
-  -- Portable approach using ps; parse pid/ppid and compute descendant set
   vim.system({ 'ps', '-Ao', 'pid,ppid' }, { text = true }, function(obj)
-    local out = obj.stdout or ''
+    local out = obj.stdout
     local children = {}
     for line in tostring(out):gmatch('[^\n]+') do
       local pid, ppid = line:match('%s*(%d+)%s+(%d+)')
@@ -131,53 +150,53 @@ local function list_descendants_async(root_pid, cb)
   end)
 end
 
--- Resolve the pane's root shell PID (stable across a run)
-local function get_pane_pid(pane_id_arg)
-  local out = vim.fn.system({ 'tmux', 'display-message', '-p', '-t', pane_id_arg, '#{pane_pid}' })
-  local pid = tonumber((tostring(out):match('(%d+)') or ''))
+local function get_pane_pid(tmux_pane_id)
+  local out = vim.fn.system({ 'tmux', 'display-message', '-p', '-t', tmux_pane_id, '#{pane_pid}' })
+  local pid = tonumber(tostring(out):match('%d+'))
   if not pid then
     error('Vigun: could not determine tmux pane pid')
   end
   return pid
 end
 
--- Polling helpers: mark done when the pane shell has no descendants for N ticks
-local function run_until_processes_done(pane_id_arg, before_snapshot, on_done)
+local function run_until_processes_done(tmux_pane_id, before_snapshot, on_done)
   if M._poll_timer then
     M._poll_timer:stop()
-    M._poll_timer:close()
+    if not M._poll_timer:is_closing() then M._poll_timer:close() end
   end
 
   local timer = vim.loop.new_timer()
   M._poll_timer = timer
 
   local started = vim.loop.now()
-  -- TODO: add timeout to config
-  local TIMEOUT_MS = 30000
   local INTERVAL_MS = 100
-  -- Finish as soon as we've observed the process tree become non-empty at
-  -- least once, and then drop to zero (i.e., the test process ended).
+  local TIMEOUT_MS = 30000
   local seen_busy = false
-  local pane_pid = get_pane_pid(pane_id_arg)
+  local pane_pid = get_pane_pid(tmux_pane_id)
 
   timer:start(0, INTERVAL_MS, function()
     list_descendants_async(pane_pid, function(descendants)
       if timer ~= M._poll_timer then return end
-
       local now = vim.loop.now()
       local timed_out = (now - started) >= TIMEOUT_MS
       local count = #descendants
-      if count > 0 then
-        seen_busy = true
-      end
+      if count > 0 then seen_busy = true end
       if (seen_busy and count == 0) or timed_out then
         timer:stop()
-        timer:close()
+        if not timer:is_closing() then timer:close() end
 
-        capture_pane_async(pane_id_arg, function(snap)
-          if timer ~= M._poll_timer then return end
+        get_total_buffer_lines_async(tmux_pane_id, function(after_snapshot)
+          local delta = after_snapshot.total - before_snapshot.total
+          local start_index = after_snapshot.total - delta
+          local end_index = after_snapshot.total
 
-          on_done(snap)
+          local start_offset = start_index - after_snapshot.history
+          local end_offset = end_index - after_snapshot.history
+
+          capture_pane_range_async(tmux_pane_id, start_offset, end_offset, function(snap)
+            if timer ~= M._poll_timer then return end
+            on_done(snap)
+          end)
         end)
       end
     end)
@@ -206,7 +225,8 @@ function M.run(mode)
 
   -- Resolve pane id once and use it across async callbacks
   local tmux_pane_id = M.get_tmux_pane_id()
-  local before = capture_pane_sync()
+  -- Capture buffer size before; we'll later fetch only the added tail
+  local before_snapshot = get_total_buffer_lines(tmux_pane_id)
 
   -- Prepare result context
   local file = vim.fn.expand('%')
@@ -217,11 +237,8 @@ function M.run(mode)
   send_to_tmux(cmd)
   M._last = cmd
 
-  run_until_processes_done(tmux_pane_id, before, function(after)
-    local output = slice_new_output(before, after)
+  run_until_processes_done(tmux_pane_id, before_snapshot, function(output)
     local ended_at = os.time()
-
-    -- Run user callback on main loop to avoid fast-event API restrictions
     vim.schedule(function()
       config.on_result({
         command = cmd,
