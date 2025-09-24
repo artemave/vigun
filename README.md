@@ -3,7 +3,7 @@ Unclutter your test diet.
 
 ## What is this?
 
-Vim plugin to run tests in a separate tmux window.
+Neovim plugin to run tests in a separate tmux window.
 
 ## Installation
 
