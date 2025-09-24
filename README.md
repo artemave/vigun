@@ -1,4 +1,4 @@
-# vigun [![CircleCI](https://circleci.com/gh/artemave/vigun.svg?style=svg)](https://circleci.com/gh/artemave/vigun)
+# vigun
 Unclutter your test diet.
 
 ## What is this?
