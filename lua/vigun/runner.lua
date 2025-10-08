@@ -221,6 +221,7 @@ function M.run(mode)
   if not config.on_result or opts.dry_run then
     send_to_tmux(cmd)
     M._last = cmd
+    return
   end
 
   -- Resolve pane id once and use it across async callbacks
