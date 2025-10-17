@@ -78,6 +78,8 @@ function M._reset()
   M._user_options = nil
 end
 
+local ns = vim.api.nvim_create_namespace('vigun.tests')
+
 function M.default_config()
   return {
     runners = {
@@ -174,6 +176,64 @@ function M.default_config()
             return 'rails test ' .. vim.fn.expand('%') .. ':' .. vim.fn.line('.')
           end,
         },
+        on_result = function(info)
+          vim.diagnostic.reset(ns)
+          local by_buf = {}
+
+          local lines = vim.split(info.output or '', '\n', { plain = true })
+          local i = 1
+          while i <= #lines do
+            local line = lines[i]
+            if line:match('^Failure:') or line:match('^Error:') then
+              i = i + 1
+              local head = lines[i] or ''
+              local file, lnum = head:match('%[([^:%]]+):(%d+)%]')
+              if file and lnum then
+                local msg_lines = {}
+                i = i + 1
+                while i <= #lines do
+                  local l = lines[i]
+                  if l == '' or l:match('^Failure:') or l:match('^Error:') or l:match('^Finished in') or l:match('^bin/rails test') then
+                    break
+                  end
+                  table.insert(msg_lines, l)
+                  i = i + 1
+                end
+                local msg = table.concat(msg_lines, '\n')
+                local bufnr = vim.fn.bufnr(vim.fn.fnamemodify(file, ':p'), true)
+                by_buf[bufnr] = by_buf[bufnr] or {}
+                table.insert(by_buf[bufnr], {
+                  lnum = tonumber(lnum) - 1,
+                  col = 0,
+                  message = msg ~= '' and msg or 'Test failure',
+                  severity = vim.diagnostic.severity.ERROR,
+                  source = 'vigun',
+                })
+              end
+            else
+              i = i + 1
+            end
+          end
+
+          -- Fallback: path:line: message (if any)
+          if vim.tbl_isempty(by_buf) then
+            for path, lnum, msg in (info.output or ''):gmatch('([%w%._%-%/]+):(%d+):%s*(.-)\n') do
+              local bufnr = vim.fn.bufnr(vim.fn.fnamemodify(path, ':p'), true)
+              by_buf[bufnr] = by_buf[bufnr] or {}
+              table.insert(by_buf[bufnr], {
+                lnum = tonumber(lnum) - 1,
+                col = 0,
+                message = msg ~= '' and msg or 'Test failure',
+                severity = vim.diagnostic.severity.ERROR,
+                source = 'vigun',
+              })
+            end
+          end
+
+          for bufnr, items in pairs(by_buf) do
+            vim.diagnostic.set(ns, bufnr, items, { underline = true, virtual_text = true })
+          end
+        end
       },
     },
   }
