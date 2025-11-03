@@ -83,36 +83,85 @@ local ns = vim.api.nvim_create_namespace('vigun.tests')
 function M.default_config()
   return {
     runners = {
-      mocha = {
-      enabled = function()
-        return vim.fn.expand('%'):match('Spec%.js$') ~= nil
-      end,
-      test_nodes = { 'it', 'xit' },
-      context_nodes = { 'context', 'describe' },
-      commands = {
-        all = function(_)
-          return './node_modules/.bin/mocha ' .. vim.fn.expand('%')
+      node_builtin = {
+        enabled = function()
+          if vim.fn.expand('%'):match('%.ts$') ~= nil or vim.fn.expand('%'):match('%.js$') ~= nil then
+            local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+            for _, line in ipairs(lines) do
+              if line:match('node[:%.]test') then
+                return true
+              end
+            end
+          end
         end,
-        ['debug-all'] = function(_)
-          return './node_modules/.bin/mocha --inspect-brk --no-timeouts ' .. vim.fn.expand('%')
-        end,
-        nearest = function(info)
-          local parts = {}
-          for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
-          table.insert(parts, info.test_title)
-          local title = table.concat(parts, ' ')
-          local quoted = vim.fn.shellescape(title)
-          return './node_modules/.bin/mocha --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
-        end,
-        ['debug-nearest'] = function(info)
-          local parts = {}
-          for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
-          table.insert(parts, info.test_title)
-          local title = table.concat(parts, ' ')
-          local quoted = vim.fn.shellescape(title)
-          return './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
-        end,
+        test_nodes = { 'it', 'xit' },
+        context_nodes = { 'context', 'describe' },
+        commands = {
+          all = function(_)
+            return 'node --test ' .. vim.fn.expand('%')
+          end,
+          nearest = function(info)
+            local quoted = vim.fn.shellescape(info.test_title)
+            return 'node --test --test-name-pattern=' .. quoted .. ' ' .. vim.fn.expand('%')
+          end,
+          ['debug-nearest'] = function(_)
+            return 'node --inspect-brk --test ' .. vim.fn.expand('%') .. ' --test-name-pattern=' .. vim.fn.shellescape(info.test_title)
+          end,
+        }
       },
+      vitest = {
+        enabled = function()
+          if vim.fn.expand('%'):match('%.ts$') ~= nil or vim.fn.expand('%'):match('%.js$') ~= nil then
+            local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+            for _, line in ipairs(lines) do
+              if line:match('vitest') then
+                return true
+              end
+            end
+          end
+        end,
+        test_nodes = { 'it', 'xit' },
+        context_nodes = { 'context', 'describe' },
+        commands = {
+          all = function(_)
+            return './node_modules/.bin/vitest run ' .. vim.fn.expand('%')
+          end,
+          nearest = function(info)
+            local quoted = vim.fn.shellescape(info.test_title)
+            return './node_modules/.bin/vitest run ' .. vim.fn.expand('%') .. ' -t ' .. quoted
+          end,
+        }
+      },
+      mocha = {
+        enabled = function()
+          return vim.fn.expand('%'):match('Spec%.js$') ~= nil
+        end,
+        test_nodes = { 'it', 'xit' },
+        context_nodes = { 'context', 'describe' },
+        commands = {
+          all = function(_)
+            return './node_modules/.bin/mocha ' .. vim.fn.expand('%')
+          end,
+          ['debug-all'] = function(_)
+            return './node_modules/.bin/mocha --inspect-brk --no-timeouts ' .. vim.fn.expand('%')
+          end,
+          nearest = function(info)
+            local parts = {}
+            for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+            table.insert(parts, info.test_title)
+            local title = table.concat(parts, ' ')
+            local quoted = vim.fn.shellescape(title)
+            return './node_modules/.bin/mocha --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+          end,
+          ['debug-nearest'] = function(info)
+            local parts = {}
+            for _, c in ipairs(info.context_titles) do table.insert(parts, c) end
+            table.insert(parts, info.test_title)
+            local title = table.concat(parts, ' ')
+            local quoted = vim.fn.shellescape(title)
+            return './node_modules/.bin/mocha --inspect-brk --no-timeouts --fgrep ' .. quoted .. ' ' .. vim.fn.expand('%')
+          end,
+        },
       },
       pytest = {
       enabled = function()
