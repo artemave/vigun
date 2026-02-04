@@ -111,7 +111,7 @@ function M.default_config()
       },
       vitest = {
         enabled = function()
-          if vim.fn.expand('%'):match('%.ts$') ~= nil or vim.fn.expand('%'):match('%.js$') ~= nil then
+          if vim.fn.expand('%'):match('%.([tj]sx?)$') then
             local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
             for _, line in ipairs(lines) do
               if line:match('vitest') then
