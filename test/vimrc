@@ -79,7 +79,10 @@ if vim.fn.has('nvim-0.12') == 1 then
   require('nvim-treesitter').setup({
     install_dir = vim.fn.getcwd() .. '/tmp/ts-install',
   })
-  require('nvim-treesitter').install({ 'javascript', 'python', 'ruby', 'typescript' }):wait(300000)
+  require('nvim-treesitter').install({ 'javascript', 'python', 'ruby', 'typescript' }):wait(60000)
+  -- Install_dir is prepended to rtp before parsers exist, so Neovim caches
+  -- "no files" for parser/*.so. Reassigning rtp invalidates that cache.
+  vim.o.rtp = vim.o.rtp
 else
   require'nvim-treesitter.configs'.setup {
     ensure_installed = { 'javascript', 'python', 'ruby', 'typescript' },
