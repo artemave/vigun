@@ -3,17 +3,29 @@ set rtp+=.
 
 call system('mkdir -p ./tmp')
 
+" nvim-treesitter's `main` branch is a rewrite requiring Nvim 0.12+ and the
+" tree-sitter CLI. On older Nvim we fall back to the archived `master` branch.
+let s:ts_branch = has('nvim-0.12') ? 'main' : 'master'
+
 let test_repos = {
-  \ 'nvim-treesitter': 'https://github.com/nvim-treesitter/nvim-treesitter.git',
-  \ 'plenary.nvim': 'https://github.com/nvim-lua/plenary.nvim.git',
-  \ 'vader.vim': 'https://github.com/junegunn/vader.vim.git'
+  \ 'nvim-treesitter': ['https://github.com/nvim-treesitter/nvim-treesitter.git', s:ts_branch],
+  \ 'plenary.nvim': ['https://github.com/nvim-lua/plenary.nvim.git', ''],
+  \ 'vader.vim': ['https://github.com/junegunn/vader.vim.git', '']
   \ }
 
 " Clone repositories if not present and add to runtime path
-for [repo_name, repo_url] in items(test_repos)
+for [repo_name, repo_spec] in items(test_repos)
+  let [repo_url, repo_branch] = repo_spec
   let repo_dir = './tmp/' . repo_name
+  if isdirectory(repo_dir) && !empty(repo_branch)
+    let current_branch = substitute(system('git -C ' . repo_dir . ' rev-parse --abbrev-ref HEAD'), '\n', '', '')
+    if current_branch !=# repo_branch
+      call system('rm -rf ' . repo_dir)
+    endif
+  endif
   if !isdirectory(repo_dir)
-    call system('git clone --depth 1 ' . repo_url . ' ' . repo_dir)
+    let branch_flag = empty(repo_branch) ? '' : ('--branch ' . repo_branch . ' ')
+    call system('git clone --depth 1 ' . branch_flag . repo_url . ' ' . repo_dir)
   endif
   execute 'set rtp+=' . repo_dir
 endfor
@@ -63,13 +75,18 @@ endf
 
 " Provide test-time configuration via Lua config API
 lua << EOF
-require'nvim-treesitter.configs'.setup {
-  ensure_installed = { "javascript", "python", "ruby", "typescript" },
-  sync_install = true,
-  highlight = {
-    enable = true,
-  },
-}
+if vim.fn.has('nvim-0.12') == 1 then
+  require('nvim-treesitter').setup({
+    install_dir = vim.fn.getcwd() .. '/tmp/ts-install',
+  })
+  require('nvim-treesitter').install({ 'javascript', 'python', 'ruby', 'typescript' }):wait(300000)
+else
+  require'nvim-treesitter.configs'.setup {
+    ensure_installed = { 'javascript', 'python', 'ruby', 'typescript' },
+    sync_install = true,
+    highlight = { enable = true },
+  }
+end
 require('vigun.config').setup({
   dry_run = true,
   runners = {
