@@ -17,4 +17,4 @@ if [ -n "$1" ]; then
 else
   path=lua/vigun/tests/
 fi
-$cmd -es -u ./test/vimrc -c "PlenaryBustedDirectory $path { sequential = true }"
+$cmd -es -u ./test/vimrc -c "PlenaryBustedDirectory $path { minimal_init = './test/vimrc', sequential = true }"
