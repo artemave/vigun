@@ -3,7 +3,7 @@ Unclutter your test diet.
 
 ## What is this?
 
-Neovim plugin to run tests in a separate tmux window.
+Neovim plugin to run tests outside of Neovim. Out of the box it dispatches to a separate tmux window; other executors can be plugged in (see [Executors](#executors)).
 
 ## Installation
 
@@ -27,7 +27,7 @@ If invoked from a non‑test file, `:VigunRun <mode>` will attempt to run the la
 
 #### VigunToggleTestWindowToPane
 
-Join tmux test window as a into the current vim window. Split out into a separate window if it's already a pane.
+Ask the active executor to toggle its layout — for the tmux executor, that means joining the test window into the current vim window as a pane (or splitting it back out if it's already a pane). Errors if the active executor doesn't implement a layout toggle.
 
 #### VigunShowSpecIndex
 
@@ -151,16 +151,45 @@ require('vigun').setup({
 
 Options are top‑level keys of `setup()`:
 
-- `tmux_window_name`: name of the tmux window for tests (default: `test`).
-- `tmux_pane_orientation`: `vertical` or `horizontal` for `:VigunToggleTestWindowToPane` (default: `vertical`).
+- `executor`: which executor to dispatch commands through (default: `'tmux'`). See [Executors](#executors).
+- `tmux_window_name`: name of the tmux window for tests (default: `test`). Tmux executor only.
+- `tmux_pane_orientation`: `vertical` or `horizontal` for `:VigunToggleTestWindowToPane` (default: `vertical`). Tmux executor only.
+- `hop_role`: role to pass to `hop run --role` (default: `'test'`). Hop executor only.
 - `remember_last_command`: rerun last command if no matching command is found (default: `true`).
+
+### Executors
+
+An executor is the adapter that takes a shell command and makes it run somewhere observable. Select one via the `executor` option:
+
+```lua
+require('vigun').setup({ executor = 'tmux' })  -- default
+require('vigun').setup({ executor = 'hop' })
+```
+
+Built‑in executors:
+
+- **`tmux`** — sends commands to a dedicated tmux window (`tmux_window_name`, default `test`). Supports layout toggling via `:VigunToggleTestWindowToPane`.
+- **`hop`** — shells out to [`hop`](https://github.com/artemave/hop) as `hop run --role <hop_role> <cmd>`.
+
+You can also pass a table with your own `run(cmd, on_done?)` (and optional `toggle_layout()`):
+
+```lua
+require('vigun').setup({
+  executor = {
+    run = function(cmd, on_done)
+      -- fire-and-forget when on_done is nil;
+      -- otherwise invoke on_done(output_string) when the command completes.
+    end,
+  },
+})
+```
 
 ### on_result callback
 
 Attach a per‑runner `on_result` to react to a finished run.
 
 `on_result` takes an `info` argument with the following fields:
-  - `command`: exact command sent to tmux
+  - `command`: exact command dispatched to the executor
   - `mode`: the exact mode name you invoked (whatever you defined)
   - `file`: current buffer filename at start
   - `output`: output of the command

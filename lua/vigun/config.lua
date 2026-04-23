@@ -330,6 +330,7 @@ end
 -- Non-framework options
 function M.default_options()
   return {
+    executor = 'tmux',
     tmux_window_name = 'test',
     tmux_pane_orientation = 'vertical', -- or 'horizontal'
     remember_last_command = true,
