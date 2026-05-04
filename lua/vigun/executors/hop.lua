@@ -1,14 +1,16 @@
 -- Executor for https://github.com/artemave/hop.
 --
 -- Wire protocol:
---   hop run --role <role> <cmd>   dispatches and prints a run id on stdout
---   hop tail <id>                 streams the run's combined output; exits
---                                 once the command completes
+--   hop run --focus --role <role> <cmd>   dispatches, focuses the role's
+--                                         window, and prints a run id on
+--                                         stdout
+--   hop tail <id>                         streams the run's combined output;
+--                                         exits once the command completes
 local M = {}
 
 local function run_argv(cmd)
   local role = require('vigun.config').get_options().hop_role or 'test'
-  return { 'hop', 'run', '--role', role, cmd }
+  return { 'hop', 'run', '--focus', '--role', role, cmd }
 end
 
 function M.run(cmd, on_done)
