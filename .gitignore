@@ -1,3 +1,5 @@
 vader.vim
 tmp
 .nvimlog
+
+/.claude/settings.local.json

@@ -169,7 +169,7 @@ require('vigun').setup({ executor = 'hop' })
 Built‑in executors:
 
 - **`tmux`** — sends commands to a dedicated tmux window (`tmux_window_name`, default `test`). Supports layout toggling via `:VigunToggleTestWindowToPane`.
-- **`hop`** — shells out to [`hop`](https://github.com/artemave/hop) as `hop run --focus --role <hop_role> <cmd>`.
+- **`hop`** — shells out to [`hop`](https://github.com/artemave/hop): dispatches with `hop run --focus --role <hop_role> <cmd>`, then (when a runner has `on_result`) collects the finished run's output with `hop wait <id>`.
 
 You can also pass a table with your own `run(cmd, on_done?)` (and optional `toggle_layout()`):
 

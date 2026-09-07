@@ -4,8 +4,10 @@
 --   hop run --focus --role <role> <cmd>   dispatches, focuses the role's
 --                                         window, and prints a run id on
 --                                         stdout
---   hop tail <id>                         streams the run's combined output;
---                                         exits once the command completes
+--   hop wait <id>                          blocks until the run finishes, then
+--                                         writes its output to stdout and
+--                                         exits with the command's own status
+--                                         (124 if hop gives up waiting)
 local M = {}
 
 local function run_argv(cmd)
@@ -49,13 +51,17 @@ function M.run(cmd, on_done)
       return
     end
 
-    local tail_argv = { 'hop', 'tail', id }
-    vim.system(tail_argv, { text = true }, function(tail)
-      if tail.code ~= 0 then
-        report_failure(tail_argv, tail)
+    local wait_argv = { 'hop', 'wait', id }
+    vim.system(wait_argv, { text = true }, function(wait)
+      -- `hop wait` exits with the test command's own status, so a non-zero
+      -- code is the normal "tests failed" outcome — hand the output to
+      -- on_done regardless. Only 124 (hop gave up waiting) is a
+      -- dispatch-level failure worth surfacing.
+      if wait.code == 124 then
+        report_failure(wait_argv, wait)
         return
       end
-      on_done(tail.stdout or '')
+      on_done(wait.stdout or '')
     end)
   end)
 end
